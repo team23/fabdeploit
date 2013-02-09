@@ -28,5 +28,6 @@ do
     done
     git add .
     git commit -m "`date +%s`.$COMMIT_COUNT"
+    sleep 1
     COMMIT_COUNT=$[ $COMMIT_COUNT + 1 ]
 done
