@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 # IDEA:
 # Initialize a virtualenv using some REQUIREMENTS file. Then initialize a
 # git repository in it. Create tags for every release made using
