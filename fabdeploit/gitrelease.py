@@ -8,6 +8,13 @@ def _git_create_release_commit(repo, commit, message=None, parents=None, actor=N
     
     # create a new commit reusing the tree (meaning no file changes)
     release_commit = git.Commit(repo, git.Commit.NULL_BIN_SHA)
+    # IDEA: Allow tree filters for real release commits (currently
+    # this function is used for two different kinds of commits).
+    # This means we can filter the release commit to not include some
+    # files or directories. You could use this to remove some files the
+    # customer does not need to see. This also means we have to modify the
+    # merge-commit-creation below a litte, basicaly we just need it to
+    # reuse the original commit tree (instead of the merge commit).
     release_commit.tree = commit.tree
     
     # set commit date
