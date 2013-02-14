@@ -1,11 +1,11 @@
 from __future__ import absolute_import
-import git
 import fabric.api as fab
 
 
 def _git_create_release_commit(repo, commit, message=None, parents=None, actor=None):
     """ Created a new git (release) commit, by reusing an existing commit tree"""
     from time import time, altzone
+    import git
     
     # create a new commit reusing the tree (meaning no file changes)
     release_commit = git.Commit(repo, git.Commit.NULL_BIN_SHA)
@@ -59,6 +59,7 @@ def _git_create_release_commit(repo, commit, message=None, parents=None, actor=N
 
 def _git_write_commit(repo, commit):
     from gitdb import IStream
+    import git
     try:
         from cStringIO import StringIO
     except ImportError:
@@ -84,6 +85,7 @@ def _git_release_deployment_branch(branch_name):
 
 
 def git_update_local():
+    import git
     assert 'deploy_git_repository' in fab.env
     assert 'deploy_release_branch' in fab.env
     
@@ -114,6 +116,7 @@ def git_create_release():
     * env.deploy_merge_release_back: Normally we merge the release commit back to
             the branch it originated from. You can turn this of (on by default)
     """
+    import git
     
     assert 'deploy_git_repository' in fab.env
     assert 'deploy_release_branch' in fab.env
@@ -182,6 +185,7 @@ def git_push_release():
     * env.deploy_release_branch: Branch that should be released
     * env.deploy_remote_path: Remote git repository
     """
+    import git
     
     # thanks to https://github.com/dbravender/gitric/blob/master/gitric/api.py
     
@@ -218,6 +222,7 @@ def git_push_release():
 
 
 def git_push_origin():
+    import git
     assert 'deploy_git_repository' in fab.env
     assert 'deploy_release_branch' in fab.env
     assert 'deploy_remote_path' in fab.env

@@ -16,7 +16,7 @@ env.use_ssh_config = True
 
 @task
 def test_release():
-    from fabdeploit.gitrelease import git_update_local, git_create_release, git_push_release, git_update_remote
+    from fabdeploit.git import git_update_local, git_create_release, git_push_release, git_update_remote
     git_update_local()
     git_create_release()
     git_push_release()
