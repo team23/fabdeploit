@@ -84,7 +84,7 @@ def _git_release_deployment_branch(branch_name):
     return 'release/%s' % branch_name
 
 
-def git_update_local():
+def pull_origin():
     import git
     assert 'deploy_git_repository' in fab.env
     assert 'deploy_release_branch' in fab.env
@@ -104,7 +104,7 @@ def git_update_local():
         repo.git.pull('origin')
 
 
-def git_create_release():
+def create_release():
     """ Creates a new release commit
     
     Creates release branch if necessary. Uses the following env variables:
@@ -177,13 +177,13 @@ def _git_release_deployment_remote_url(repo_path):
         return 'ssh://%s@%s:%s/~%s/%s' % (fab.env.user, fab.env.host, fab.env.port, fab.env.user, repo_path)
 
 
-def git_push_release():
+def push_release():
     """ Pushes the release branch
     
     Creates release branch if necessary. Uses the following env variables:
     * env.deploy_git_repository: Path to the local git repository
     * env.deploy_release_branch: Branch that should be released
-    * env.deploy_remote_path: Remote git repository
+    * env.deploy_remote_path: Remote git repository path
     """
     import git
     
@@ -221,7 +221,7 @@ def git_push_release():
     #remote.push(release_deployment_branch)
 
 
-def git_push_origin():
+def push_origin():
     import git
     assert 'deploy_git_repository' in fab.env
     assert 'deploy_release_branch' in fab.env
@@ -238,7 +238,7 @@ def git_push_origin():
     repo.git.push('origin', release_deployment_branch)
 
 
-def git_update_remote():
+def deploy_release():
     assert 'deploy_release_branch' in fab.env
     assert 'deploy_remote_path' in fab.env
     
@@ -247,6 +247,7 @@ def git_update_remote():
     
     # checkout changes on remote
     with fab.cd(fab.env.deploy_remote_path):
+        # TODO: Support using a tag/commit-sha1 here
         #fab.run('git checkout %s' % release_deployment_branch)
         fab.run('git reset --hard %s' % release_deployment_branch)
 
