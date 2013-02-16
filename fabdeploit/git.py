@@ -209,11 +209,11 @@ def push_release():
             remote = repo.create_remote(release_remote_name, release_remote_url)
     
     # initialize the remote repository (idempotent)
-    fab.run('git init %s' % fab.env.deploy_remote_git_repository)
+    fab.run('git init "%s"' % fab.env.deploy_remote_git_repository)
     # silence git complaints about pushes coming in on the current branch
     # the pushes only seed the immutable object store and do not modify the
     # working copy
-    fab.run('GIT_DIR=%s/.git git config receive.denyCurrentBranch ignore' %
+    fab.run('GIT_DIR="%s/.git" git config receive.denyCurrentBranch ignore' %
         fab.env.deploy_remote_git_repository)
     
     # push to remote
@@ -237,7 +237,7 @@ def push_origin():
     repo.git.push('origin', release_deployment_branch)
 
 
-def deploy_release():
+def switch_release(commit=None):
     assert 'deploy_release_branch' in fab.env
     assert 'deploy_remote_git_repository' in fab.env
     
@@ -248,5 +248,5 @@ def deploy_release():
     with fab.cd(fab.env.deploy_remote_git_repository):
         # TODO: Support using a tag/commit-sha1 here
         #fab.run('git checkout %s' % release_deployment_branch)
-        fab.run('git reset --hard %s' % release_deployment_branch)
+        fab.run('git reset --hard "%s"' % (commit if commit else release_deployment_branch))
 

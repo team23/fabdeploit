@@ -6,6 +6,7 @@ COMMIT_COUNT=1
 if [ ! -d test_repo ]
 then
     git init test_repo
+    echo 'Django' > test_repo/REQUIREMENTS
 fi
 
 cd test_repo || exit 1

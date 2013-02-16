@@ -71,6 +71,12 @@ virtualanv
 * env.deploy_env_path: Path to virtualenv
 * env.deploy_env_history: Keep virtualenv in git to allow switching back
   to older releases. (off by default)
-* env.deploy_requirements_path: Path to requirements file (for automatic
+* env.deploy_env_requirements: Path to requirements file (for automatic
   virtualenv updates)
+
+
+TODO
+====
+
+* use fabric require() instead of assert
 
