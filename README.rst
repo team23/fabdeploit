@@ -57,7 +57,7 @@ git
 * env.deploy_release_message: Message used for release commit (optional)
 * env.deploy_release_tag: Tag that should be created for release commit (optional)
 * env.deploy_merge_release_back: Normally we merge the release commit back to
-  the branch it originated from. You can turn this of (on by default)
+  the branch it originated from. You can turn this off (on by default)
 * env.deploy_remote_git_repository: Remote git repository path
 
 django
