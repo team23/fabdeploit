@@ -32,8 +32,10 @@ def create_commit(message=None, tag=None):
         # addremove everything
         fab.run('git add -A')
         fab.run('git ls-files --deleted -z | xargs -r -0 git rm')
-        # create commit
-        fab.run('git commit -m "%s"' % message)
+        # create commit (may fail if no changes happened)
+        with fab.settings(warn_only=True):
+            fab.run('git commit -m "%s"' % message)
+        # create tag if wanted
         if tag:
             fab.run('git tag "%s"' % tag)
 

@@ -20,18 +20,13 @@ env.deploy_env_requirements = '%s/REQUIREMENTS' % env.deploy_remote_git_reposito
 
 
 @task
-def test_release():
-    from fabdeploit import git
+def test():
+    from fabdeploit import git, virtualenv
     git.pull_origin()
-    git.create_release()
+    commit = git.create_release()
     git.push_origin()
     git.push_release()
     git.switch_release()
-
-
-@task
-def test_virtualenv():
-    from fabdeploit import virtualenv
     virtualenv.init()
     virtualenv.update_deps()
-    virtualenv.create_commit()
+    virtualenv.create_commit(tag='release/%s' % commit.hexsha)
