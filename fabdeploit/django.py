@@ -1,5 +1,44 @@
 from __future__ import absolute_import
+import fabric.api as fab
+from . import virtualenv
 
-# IDEA:
-# Add functions for django management. This should include things like
-# collectstatic, syncdb and migrate (south)
+
+def run_command(command, *options):
+    assert 'deploy_manage_path' in fab.env
+    run("%s %s %s %s" % (
+        virtualenv.python_path()
+        fab.env.deploy_manage_path,
+        command,
+        ' '.join([o for o in options if not o is None]),
+    ))
+
+
+def collectstatic(clear=False):
+    run_command(
+        'collectstatic',
+        '--noinput',
+        '-c' if clear else None,
+    )
+
+
+def syncdb(migrate=False, database=None):
+    run_command(
+        'syncdb',
+        '--noinput',
+        '--database=%s' % database if database else None,
+        '--migrate' if migrate else None,
+    )
+
+
+def migrate(app=None, migration=None, database=None, fake=False):
+    run_command(
+        'migrate',
+        '--noinput',
+        '--database=%s' % database if database else None,
+        '--migrate' if migrate else None,
+        '--fake' if fake else None,
+        app if app else None,
+        migration if migration else None,
+    )
+
+
