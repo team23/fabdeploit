@@ -246,7 +246,21 @@ def switch_release(commit=None):
     
     # checkout changes on remote
     with fab.cd(fab.env.deploy_remote_git_repository):
-        # TODO: Support using a tag/commit-sha1 here
-        #fab.run('git checkout %s' % release_deployment_branch)
-        fab.run('git reset --hard "%s"' % (commit if commit else release_deployment_branch))
+        # we switch to the appropriate commit using a normal checkout, this
+        # way git "knowns" where we are going. Afterwards we reset the working
+        # to this version, cleaning possible changes.
+        # if we would just reset the working copy (like gitric does) we would
+        # get a funny state in git. git then resets the branch-pointer to this
+        # revision, meaning git woukd think we have fallen back behind the
+        # origin some revisions. If we switch branch when doing the reset we
+        # get a diverged warning, because git still thinks our commit belongs
+        # to the original branch.
+        # so we use checkout (detached head) as this covers the actual stage
+        # much better. git now knows we want to fall back to an old revision
+        # and thus does not mix up branch information.
+        # anyways we do an reset afterwards so the working directory is clean.
+        # (TODO: check if an reset before the checkout is necessary to do some
+        # pre-checkout-cleanup)
+        fab.run('git checkout "%s"' % (commit if commit else release_deployment_branch))
+        fab.run('git reset --hard')
 
