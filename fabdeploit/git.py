@@ -86,8 +86,9 @@ def _git_release_deployment_branch(branch_name):
 
 def pull_origin():
     import git
-    assert 'deploy_git_repository' in fab.env
-    assert 'deploy_release_branch' in fab.env
+    fab.require(
+        'deploy_git_repository',
+        'deploy_release_branch')
     
     # init repo and config
     repo = git.Repo(fab.env.deploy_git_repository)
@@ -118,8 +119,9 @@ def create_release():
     """
     import git
     
-    assert 'deploy_git_repository' in fab.env
-    assert 'deploy_release_branch' in fab.env
+    fab.require(
+        'deploy_git_repository',
+        'deploy_release_branch')
     
     # init repo, latest commit and config
     repo = git.Repo(fab.env.deploy_git_repository)
@@ -189,9 +191,10 @@ def push_release():
     
     # thanks to https://github.com/dbravender/gitric/blob/master/gitric/api.py
     
-    assert 'deploy_git_repository' in fab.env
-    assert 'deploy_release_branch' in fab.env
-    assert 'deploy_remote_git_repository' in fab.env
+    fab.require(
+        'deploy_git_repository',
+        'deploy_release_branch',
+        'deploy_remote_git_repository')
     
     # init repo and config
     repo = git.Repo(fab.env.deploy_git_repository)
@@ -223,8 +226,9 @@ def push_release():
 
 def push_origin():
     import git
-    assert 'deploy_git_repository' in fab.env
-    assert 'deploy_release_branch' in fab.env
+    fab.require(
+        'deploy_git_repository',
+        'deploy_release_branch')
     
     # init repo and config
     repo = git.Repo(fab.env.deploy_git_repository)
@@ -238,8 +242,9 @@ def push_origin():
 
 
 def switch_release(commit=None):
-    assert 'deploy_release_branch' in fab.env
-    assert 'deploy_remote_git_repository' in fab.env
+    fab.require(
+        'deploy_release_branch',
+        'deploy_remote_git_repository')
     
     # init repo and latest commit
     release_deployment_branch = _git_release_deployment_branch(fab.env.deploy_release_branch)

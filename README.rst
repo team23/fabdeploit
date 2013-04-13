@@ -75,8 +75,3 @@ virtualanv
   virtualenv updates)
 
 
-TODO
-====
-
-* use fabric require() instead of assert
-

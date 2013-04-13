@@ -19,7 +19,7 @@ def _env_path(command='python2'):
 def create_commit(message=None, tag=None):
     import datetime
     
-    assert 'deploy_env_path' in fab.env
+    fab.require('deploy_env_path')
     
     if not getattr(fab.env, 'deploy_env_history', False):
         return
@@ -43,7 +43,7 @@ def create_commit(message=None, tag=None):
 def init(force=False):
     from fabric.contrib import files
     
-    assert 'deploy_env_path' in fab.env
+    fab.require('deploy_env_path')
     
     if not force and files.exists(fab.env.deploy_env_path):
         return
@@ -61,8 +61,9 @@ def init(force=False):
 def update_deps():
     import datetime
     
-    assert 'deploy_env_path' in fab.env
-    assert 'deploy_env_requirements' in fab.env
+    fab.require(
+        'deploy_env_path',
+        'deploy_env_requirements')
     
     fab.run('%s install -r "%s" -U' % (
         _env_path('pip'),
@@ -71,7 +72,7 @@ def update_deps():
 
 
 def switch(commit):
-    assert 'deploy_env_path' in fab.env
+    fab.require('deploy_env_path')
     
     if not getattr(fab.env, 'deploy_env_history', False):
         fab.abort('Cannot switch to older version, git is not enabled for virtualenv (see env.deploy_env_history)')

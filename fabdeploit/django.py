@@ -4,7 +4,7 @@ from . import virtualenv
 
 
 def run_command(command, *options):
-    assert 'deploy_manage_path' in fab.env
+    fab.require('deploy_manage_path')
     run("%s %s %s %s" % (
         virtualenv._env_path(),
         fab.env.deploy_manage_path,
