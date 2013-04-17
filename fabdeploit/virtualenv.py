@@ -32,6 +32,8 @@ def create_commit(message=None, tag=None):
         # addremove everything
         fab.run('git add -A')
         fab.run('git ls-files --deleted -z | xargs -r -0 git rm')
+        # switch back to latest commit
+        fab.run('git checkout master')
         # create commit (may fail if no changes happened)
         with fab.settings(warn_only=True):
             fab.run('git commit -m "%s"' % message)
@@ -78,5 +80,6 @@ def switch(commit):
         fab.abort('Cannot switch to older version, git is not enabled for virtualenv (see env.deploy_env_history)')
     
     with fab.cd(fab.env.deploy_env_path):
-        fab.run('git reset --hard "%s"' % commit)
+        fab.run('git checkout "%s"' % commit)
+        fab.run('git reset --hard')
 
