@@ -9,13 +9,6 @@ def _git_create_release_commit(repo, commit, message=None, parents=None, actor=N
     
     # create a new commit reusing the tree (meaning no file changes)
     release_commit = git.Commit(repo, git.Commit.NULL_BIN_SHA)
-    # IDEA: Allow tree filters for real release commits (currently
-    # this function is used for two different kinds of commits).
-    # This means we can filter the release commit to not include some
-    # files or directories. You could use this to remove some files the
-    # customer does not need to see. This also means we have to modify the
-    # merge-commit-creation below a litte, basicaly we just need it to
-    # reuse the original commit tree (instead of the merge commit).
     release_commit.tree = commit.tree
     
     # set commit date
@@ -105,7 +98,7 @@ def pull_origin():
         repo.git.pull('origin')
 
 
-def create_release():
+def create_release(release_commit_filter=None):
     """ Creates a new release commit
     
     Creates release branch if necessary. Uses the following env variables:
@@ -147,6 +140,14 @@ def create_release():
     else:
         release_commit = _git_create_release_commit(repo, commit, message=message, actor=release_actor)
     
+    if release_commit_filter and callable(release_commit_filter):
+        # You may write a filter to change the commit after if is initially
+        # created. Changes may involve changing the tree (remove, change or
+        # add files) or changing the meta data (author, date, message).
+        # I think this should be used for tree filters, as other data may be
+        # set before even creating the commit.
+        release_commit_filter(release_commit)
+    
     # write commit
     _git_write_commit(repo, release_commit)
     assert release_commit.binsha
@@ -159,7 +160,9 @@ def create_release():
     
     # merge commit back to origin branch
     if not 'deploy_merge_release_back' in fab.env or fab.env.deploy_merge_release_back:
-        merge_commit = _git_create_release_commit(repo, release_commit, parents=[commit, release_commit])
+        # We reuse the original commit here, as the release commit may be
+        # changed by some filter.
+        merge_commit = _git_create_release_commit(repo, commit, parents=[commit, release_commit])
         _git_write_commit(repo, merge_commit)
         assert merge_commit.binsha
         _git_update_branch(repo, fab.env.deploy_release_branch, merge_commit)

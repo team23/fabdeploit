@@ -35,7 +35,6 @@ def migrate(app=None, migration=None, database=None, fake=False):
         'migrate',
         '--noinput',
         '--database="%s"' % database if database else None,
-        '--migrate' if migrate else None,
         '--fake' if fake else None,
         app if app else None,
         migration if migration else None,

@@ -29,14 +29,15 @@ def create_commit(message=None, tag=None):
     with fab.cd(fab.env.deploy_env_path):
         # (re) initialize
         fab.run('git init')
+        # TODO: Make sure this is done right:        
+        ## switch back to latest commit
+        #fab.run('git checkout master')
         # addremove everything
         fab.run('git add -A')
         fab.run('git ls-files --deleted -z | xargs -r -0 git rm')
-        # switch back to latest commit
-        fab.run('git checkout master')
         # create commit (may fail if no changes happened)
         with fab.settings(warn_only=True):
-            fab.run('git commit -m "%s"' % message)
+            fab.run('git commit --allow-empty -m "%s"' % message)
         # create tag if wanted
         if tag:
             fab.run('git tag "%s"' % tag)
@@ -60,7 +61,7 @@ def init(force=False):
     ))
 
 
-def update_deps():
+def update():
     import datetime
     
     fab.require(
@@ -73,13 +74,14 @@ def update_deps():
     ))
 
 
-def switch(commit):
+def switch_release(commit):
     fab.require('deploy_env_path')
     
     if not getattr(fab.env, 'deploy_env_history', False):
         fab.abort('Cannot switch to older version, git is not enabled for virtualenv (see env.deploy_env_history)')
     
     with fab.cd(fab.env.deploy_env_path):
+        # see git.py on why we do checkout + reset
         fab.run('git checkout "%s"' % commit)
         fab.run('git reset --hard')
 
