@@ -50,7 +50,7 @@ def _git_create_release_commit(repo, commit, message=None, parents=None, actor=N
     return release_commit
 
 
-def _git_write_commit(repo, commit):
+def _git_write_object(repo, obj):
     from gitdb import IStream
     import git
     try:
@@ -59,12 +59,12 @@ def _git_write_commit(repo, commit):
         from StringIO import StringIO
     
     stream = StringIO()
-    commit._serialize(stream)
+    obj._serialize(stream)
     streamlen = stream.tell()
     stream.seek(0)
-    istream = repo.odb.store(IStream(git.Commit.type, streamlen, stream))
-    commit.binsha = istream.binsha
-    return commit
+    istream = repo.odb.store(IStream(obj.__class__.type, streamlen, stream))
+    obj.binsha = istream.binsha
+    return obj
 
 
 def _git_update_branch(repo, branch_name, commit):
@@ -149,7 +149,7 @@ def create_release(release_commit_filter=None):
         release_commit_filter(release_commit)
     
     # write commit
-    _git_write_commit(repo, release_commit)
+    _git_write_object(repo, release_commit)
     assert release_commit.binsha
     # update release branch
     _git_update_branch(repo, release_deployment_branch, release_commit)
@@ -163,7 +163,7 @@ def create_release(release_commit_filter=None):
         # We reuse the original commit here, as the release commit may be
         # changed by some filter.
         merge_commit = _git_create_release_commit(repo, commit, parents=[commit, release_commit])
-        _git_write_commit(repo, merge_commit)
+        _git_write_object(repo, merge_commit)
         assert merge_commit.binsha
         _git_update_branch(repo, fab.env.deploy_release_branch, merge_commit)
         #merge_index = Index.from_tree(repo, parent, 'HEAD', 'some_branch')
