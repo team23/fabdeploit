@@ -2,12 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name = "fabdeploit",
-    version = "0.1.0",
+    version = "0.0.1",
     description = 'fabric utilities for git based deployments',
     author = 'David Danier',
     author_email = 'david.danier@team23.de',
-    #url = 'https://github.com/ddanier/fabdeploit',
-    #long_description=open('README.rst', 'r').read(),
+    url = 'https://github.com/ddanier/fabdeploit',
+    long_description=open('README.rst', 'r').read(),
     packages = [
         'fabdeploit',
     ],
