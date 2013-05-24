@@ -244,7 +244,7 @@ def push_origin():
     repo.git.push('origin', release_deployment_branch)
 
 
-def switch_release(commit=None):
+def switch_release(commit=None, update_to_remote=None):
     fab.require(
         'deploy_release_branch',
         'deploy_remote_git_repository')
@@ -259,16 +259,51 @@ def switch_release(commit=None):
         # to this version, cleaning possible changes.
         # if we would just reset the working copy (like gitric does) we would
         # get a funny state in git. git then resets the branch-pointer to this
-        # revision, meaning git woukd think we have fallen back behind the
+        # revision, meaning git would think we have fallen back behind the
         # origin some revisions. If we switch branch when doing the reset we
         # get a diverged warning, because git still thinks our commit belongs
         # to the original branch.
         # so we use checkout (detached head) as this covers the actual stage
         # much better. git now knows we want to fall back to an old revision
         # and thus does not mix up branch information.
-        # anyways we do an reset afterwards so the working directory is clean.
-        # (TODO: check if an reset before the checkout is necessary to do some
-        # pre-checkout-cleanup)
-        fab.run('git checkout "%s"' % (commit if commit else release_deployment_branch))
+        # anyways we do an reset before checkout so the working directory is
+        # clean.
         fab.run('git reset --hard')
+        if update_to_remote:
+            # THIS IS NOT HOW FABDEPLOIT IS INTENDED TO BE USED
+            # If we have pulled the changes (which gitdeploit does not do by
+            # default) and switch back to the branch (not a particular release
+            # commit) we may have a edge case. The branch may have fallen
+            # behind the remote branch while we stayed at headless commit
+            # checkouts. This means switching directly to the branch would
+            # revert a lot of changes, pulling them back in afterwards and
+            # by this doing a lot of IO while risking some funny state (and
+            # perhaps even conflicts?).
+            # So if users want to pull changes and switch back to the branch
+            # after some time we need to first reset the (local) branch to the
+            # current remote version.
+            # If you pass update_to_remote (meaning update_to_remote="origin")
+            # switch_release() will do that for you by first comparing the
+            # sha1 of the branch to the current HEAD. If both differ we are
+            # most probably in headless mode and should update the (local)
+            # branch. This is done by calling an update-ref to the remote
+            # branch. Afterwards the normal checkout.
+            # IF YOU USE THIS YOU HAVE TO FETCH FIRST (SOMEWHERE ELSE)
+            # ANYWAYS AGAIN, THIS IS NOT HOW FABDEPLOIT IS INTENDED TO BE USED
+            if commit is None or commit == release_deployment_branch:
+                head_rev = fab.run('git rev-parse HEAD')
+                # not done here, but should look like this
+                #fab.run('git fetch "%s"' % update_to_remote)
+                # switch to headless or make sure we are in headless mode
+                fab.run('git checkout "%s"' % head_rev)
+                # update branch pointer
+                fab.run('git update-ref "refs/heads/%s" "refs/remotes/%s/%s"' % (
+                    release_deployment_branch,
+                    update_to_remote,
+                    release_deployment_branch,
+                ))
+                # switch to updated branch
+                fab.run('git checkout "%s"' % release_deployment_branch)
+        else:
+            fab.run('git checkout "%s"' % (commit if commit else release_deployment_branch))
 
