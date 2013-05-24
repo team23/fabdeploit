@@ -240,7 +240,7 @@ def push_origin():
     # push changes
     if not 'origin' in [_i.name for _i in repo.remotes]:
         return
-    repo.git.push('origin', fab.env.deploy_git_repository)
+    repo.git.push('origin', fab.env.deploy_release_branch)
     repo.git.push('origin', release_deployment_branch)
 
 
@@ -268,7 +268,9 @@ def switch_release(commit=None, update_to_remote=None):
         # and thus does not mix up branch information.
         # anyways we do an reset before checkout so the working directory is
         # clean.
-        fab.run('git reset --hard')
+        with fab.settings(warn_only=True):
+            # may fail on initial push
+            fab.run('git reset --hard')
         if update_to_remote:
             # THIS IS NOT HOW FABDEPLOIT IS INTENDED TO BE USED
             # If we have pulled the changes (which gitdeploit does not do by
@@ -306,4 +308,6 @@ def switch_release(commit=None, update_to_remote=None):
                 fab.run('git checkout "%s"' % release_deployment_branch)
         else:
             fab.run('git checkout "%s"' % (commit if commit else release_deployment_branch))
+        # make sure everything is clean
+        fab.run('git reset --hard')
 
