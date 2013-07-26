@@ -182,7 +182,7 @@ def _git_release_deployment_remote_url(repo_path):
         return 'ssh://%s@%s:%s/~%s/%s' % (fab.env.user, fab.env.host, fab.env.port, fab.env.user, repo_path)
 
 
-def push_release():
+def push_release(bare=False):
     """ Pushes the release branch
     
     Creates release branch if necessary. Uses the following env variables:
@@ -215,12 +215,15 @@ def push_release():
             remote = repo.create_remote(release_remote_name, release_remote_url)
     
     # initialize the remote repository (idempotent)
-    fab.run('git init "%s"' % fab.env.deploy_remote_git_repository)
-    # silence git complaints about pushes coming in on the current branch
-    # the pushes only seed the immutable object store and do not modify the
-    # working copy
-    fab.run('GIT_DIR="%s/.git" git config receive.denyCurrentBranch ignore' %
-        fab.env.deploy_remote_git_repository)
+    if bare:
+        fab.run('git init --bare "%s"' % fab.env.deploy_remote_git_repository)
+    else:
+        fab.run('git init "%s"' % fab.env.deploy_remote_git_repository)
+        # silence git complaints about pushes coming in on the current branch
+        # the pushes only seed the immutable object store and do not modify the
+        # working copy
+        fab.run('GIT_DIR="%s/.git" git config receive.denyCurrentBranch ignore' %
+            fab.env.deploy_remote_git_repository)
     
     # push to remote
     repo.git.push(release_remote_name, release_deployment_branch)
