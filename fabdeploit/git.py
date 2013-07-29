@@ -92,10 +92,10 @@ def pull_origin():
         return
     # TODO: Do this using gitpython api?
     repo.git.checkout(fab.env.deploy_release_branch)
-    repo.git.pull('origin')
+    repo.git.pull('origin', fab.env.deploy_release_branch)
     if release_deployment_branch in repo.heads:
         repo.git.checkout(release_deployment_branch)
-        repo.git.pull('origin')
+        repo.git.pull('origin', release_deployment_branch)
 
 
 def create_release(release_commit_filter=None):
