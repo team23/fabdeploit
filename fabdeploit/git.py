@@ -172,7 +172,7 @@ def create_release(release_commit_filter=None):
 
 
 def _git_release_deployment_remote_name(branch_name):
-    return 'release_%s' % branch_name
+    return 'release/%s' % branch_name
 
 
 def _git_release_deployment_remote_url(repo_path):

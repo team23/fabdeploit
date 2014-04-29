@@ -41,5 +41,5 @@ def test():
     git.push_release()
     git.switch_release()
     virtualenv.init()
-    virtualenv.update_deps()
+    virtualenv.update()
     virtualenv.create_commit(tag='release/%s' % commit.hexsha)
