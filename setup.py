@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "fabdeploit",
-    version = "0.0.4",
+    version = "0.0.5",
     description = 'fabric utilities for git based deployments',
     author = 'David Danier',
     author_email = 'david.danier@team23.de',
@@ -18,7 +18,7 @@ setup(
         'GitPython >=0.3.0',
     ],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Environment :: Console',
         'Intended Audience :: Developers',

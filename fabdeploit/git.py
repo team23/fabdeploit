@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import fabric.api as fab
+import datetime
 
 
 def _git_create_release_commit(repo, commit, message=None, parents=None, actor=None):
@@ -96,6 +97,7 @@ def pull_origin():
     if release_deployment_branch in repo.heads:
         repo.git.checkout(release_deployment_branch)
         repo.git.pull('origin', release_deployment_branch)
+    repo.git.checkout(fab.env.deploy_release_branch)  # switch back to release branch
 
 
 def create_release(release_commit_filter=None):
@@ -134,7 +136,7 @@ def create_release(release_commit_filter=None):
     if 'deploy_release_message' in fab.env:
         message = fab.env.deploy_release_message
     else:
-        message = None
+        message = datetime.datetime.now().isoformat()
     if parent:
         release_commit = _git_create_release_commit(repo, commit, message=message, parents=[parent], actor=release_actor)
     else:

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import fabric.api as fab
 import posixpath
+from .utils import _select_bin
 
 # IDEA:
 # Initialize a virtualenv using some REQUIREMENTS file. Then initialize a
@@ -9,11 +10,11 @@ import posixpath
 # inside the virtualenv as well.
 
 
-def _env_path(command='python2'):
+def _env_bin(*commands):
     if 'deploy_env_path' in fab.env:
-        return posixpath.join(fab.env.deploy_env_path, 'bin', command)
+        return _select_bin(*commands, paths=posixpath.join(fab.env.deploy_env_path, 'bin'))
     else:
-        return command
+        return _select_bin(*commands)
 
 
 def create_commit(message=None, tag=None):
@@ -52,10 +53,12 @@ def init(force=False):
         return
     
     download_path = posixpath.join(fab.env.deploy_env_path, 'download')
-    download_virtualenv_bin = posixpath.join(download_path, 'virtualenv.py')
+    download_virtualenv_path = posixpath.join(download_path, 'virtualenv')
+    download_virtualenv_bin = posixpath.join(download_virtualenv_path, 'virtualenv.py')
     fab.run('mkdir -p "%s"' % download_path)
-    fab.run('wget https://raw.github.com/pypa/virtualenv/master/virtualenv.py -O "%s"' % download_virtualenv_bin)
-    fab.run('python2 "%s" --clear --no-site-packages "%s"' % (
+    fab.run('git clone --depth 1 --branch master https://github.com/pypa/virtualenv.git %s' % download_virtualenv_path)
+    fab.run('%s "%s" --clear --no-site-packages "%s"' % (
+        _select_bin('python2', 'python'),
         download_virtualenv_bin,
         fab.env.deploy_env_path,
     ))
@@ -69,7 +72,7 @@ def update():
         'deploy_env_requirements')
     
     fab.run('%s install -r "%s" -U' % (
-        _env_path('pip'),
+        _env_bin('pip2', 'pip'),
         fab.env.deploy_env_requirements,
     ))
 
