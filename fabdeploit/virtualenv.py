@@ -12,7 +12,10 @@ from .utils import _select_bin
 
 def _env_bin(*commands):
     if 'deploy_env_path' in fab.env:
-        return _select_bin(*commands, paths=posixpath.join(fab.env.deploy_env_path, 'bin'))
+        return _select_bin(*commands, paths=[
+            posixpath.join(fab.env.deploy_env_path, 'bin'),
+            posixpath.join(fab.env.deploy_env_path, 'Scripts'),
+        ])
     else:
         return _select_bin(*commands)
 
@@ -71,7 +74,7 @@ def update():
         'deploy_env_path',
         'deploy_env_requirements')
     
-    fab.run('%s install -r "%s" -U' % (
+    fab.run('%s install -Ur "%s"' % (
         _env_bin('pip2', 'pip'),
         fab.env.deploy_env_requirements,
     ))

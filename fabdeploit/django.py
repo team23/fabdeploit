@@ -6,7 +6,7 @@ from . import virtualenv
 def run_command(command, *options):
     fab.require('deploy_manage_path')
     fab.run("%s %s %s %s" % (
-        virtualenv._env_bin('python2', 'python'),
+        virtualenv._env_bin('python2', 'python', 'python2.exe', 'python.exe'),
         fab.env.deploy_manage_path,
         command,
         ' '.join([o for o in options if not o is None]),
