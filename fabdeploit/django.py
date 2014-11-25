@@ -30,10 +30,11 @@ def syncdb(migrate=False, database=None):
     )
 
 
-def migrate(app=None, migration=None, database=None, fake=False):
+def migrate(app=None, migration=None, database=None, fake=False, merge=False):
     run_command(
         'migrate',
         '--noinput',
+        '--merge' if merge else None,
         '--database="%s"' % database if database else None,
         '--fake' if fake else None,
         app if app else None,
