@@ -1,9 +1,10 @@
 git Releases
 ============
 
-fabdeplois allows you to use git for your releases while not pushing
-all your history to your customers server. It uses gitpython to manage
-release commits in a distinct branch which gets pushed to the server.
+fabdeploit allows you to use git for your releases while not pushing
+all your history to your or your customers server. It uses gitpython to manage
+release commits in a distinct branch which gets pushed to the server. This
+branch only contains release history.
 
 Your history may then look like::
 
@@ -27,7 +28,7 @@ Your history may then look like::
     | |  ...I think you should see the pattern now ;--)
 
 As you may see release commits **never** have any parents except the previous
-release. This way your history will never be pushed to your customers server,
+release. This way your history will never be pushed directly to the server,
 as long as you only push the release branch. If you look at the release branch
 ("release/master") the history looks like::
 
