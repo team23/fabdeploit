@@ -42,12 +42,22 @@ as long as you only push the release branch. If you look at the release branch
 Use cases
 =========
 
+Many, to be documented.
 
 
+Documentation
+=============
+
+Still missing, this is a goal for 1.0. Please feel free to look at the exmaple/ directory
+or the code itself.
 
 
-Option reference (env)
-======================
+Option reference (env) [LEGACY FUNCION CALLS]
+=============================================
+
+For historical reasons fabdeploit allows using fabric env variables and simple function calls
+for using it. PLEASE USE THE CLASS BASED APPROACH INSTEAD. This is much cleaner and allows
+for more advanced use cases.
 
 git
 ---
