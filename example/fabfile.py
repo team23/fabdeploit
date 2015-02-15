@@ -23,6 +23,20 @@ class Git(fabdeploit.Git):
         self._raw_write_object(tree)
         self.release_commit.tree = tree
 
+    # # Example usage:
+    # # Change commit after release was created. This allows using shell commands
+    # # in addition to the filter above. You may for example generate CSS files
+    # # using sass and add them to your release commit.
+    # def create_release_commit(self, *args, **kwargs):
+    #     super(Git, self).create_release_commit(*args, **kwargs)
+    #     with lcd(self.local_repository_path):
+    #         local('git checkout %s' % self.release_deployment_branch())
+    #         local('echo $RANDOM > FOOBAR')
+    #         local('git add FOOBAR')
+    #         local('git commit --amend --no-edit')
+    #         self.release_commit = self._get_local_repo().heads[self.release_deployment_branch()].commit
+    #     return self.release_commit
+
 
 class Virtualenv(fabdeploit.Virtualenv2):
     virtualenv_path = 'temp/git/test_fabdeploit/env'
@@ -36,10 +50,9 @@ env.use_ssh_config = True
 @task
 def test():
     git = Git()
-    # git.pull()
+    git.pull()
     commit = git.release(merge_back=True)
-    # git.push()
-    git.push_release()
+    git.push()
     git.switch_release()
 
     virtualenv = Virtualenv()

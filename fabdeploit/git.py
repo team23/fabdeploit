@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import warnings
 import fabric.api as fab
 import datetime
+import os
 from time import time, altzone
 from .base import BaseCommandUtil
 from .utils import legacy_wrap
@@ -18,6 +19,13 @@ class Git(BaseCommandUtil):
         super(Git, self).__init__(**kwargs)
         self.base_commit = None
         self.release_commit = None
+        if self.local_repository_path is None:
+            raise RuntimeError('No local_repository_path specified (class or constructor)')
+        if self.remote_repository_path is None:
+            raise RuntimeError('No remote_repository_path specified (class or constructor)')
+        if self.release_branch is None:
+            raise RuntimeError('No release_branch specified (class or constructor)')
+        self.local_repository_path = os.path.realpath(os.path.abspath(self.local_repository_path))
 
     def _get_local_repo(self):
         try:
@@ -105,16 +113,19 @@ class Git(BaseCommandUtil):
         if not 'origin' in [_i.name for _i in repo.remotes]:
             raise RuntimeError('No origin exists in remotes')
 
-        # TODO: Do this using gitpython api?
-        repo.git.checkout(self.release_branch)
-        repo.git.pull('origin', self.release_branch)
-        if release_deployment_branch in repo.heads:
-            repo.git.checkout(release_deployment_branch)
-            repo.git.pull('origin', release_deployment_branch)
-        repo.git.checkout(self.release_branch)  # switch back to release branch
+        with fab.lcd(self.local_repository_path):
+            fab.local('git checkout "{branch}"'.format(branch=self.release_branch))
+            fab.local('git pull origin "{branch}"'.format(branch=self.release_branch))
+            if release_deployment_branch in repo.heads or \
+                    ('origin' in [_i.name for _i in repo.remotes] and
+                             release_deployment_branch in repo.remotes.origin.refs):
+                fab.local('git checkout "{branch}"'.format(branch=release_deployment_branch))
+                with fab.settings(warn_only=True):
+                    fab.local('git pull origin "{branch}"'.format(branch=release_deployment_branch))
 
     def pull(self):
-        self.pull_origin()
+        if 'origin' in [_i.name for _i in self._get_local_repo().remotes]:
+            self.pull_origin()
 
     def create_release_commit(self, message=None):
         """ Creates a new release commit """
@@ -217,7 +228,11 @@ class Git(BaseCommandUtil):
                     self.remote_repository_path)
 
         # push to remote
-        repo.git.push(release_remote_name, release_deployment_branch)
+        with fab.lcd(self.local_repository_path):
+            fab.local('git push "{remote}" "{branch}"'.format(
+                remote=release_remote_name,
+                branch=release_deployment_branch,
+            ))
         #remote.push(release_deployment_branch)
 
     def push_origin(self):
@@ -227,11 +242,13 @@ class Git(BaseCommandUtil):
         # push changes
         if not 'origin' in [_i.name for _i in repo.remotes]:
             return
-        repo.git.push('origin', self.release_branch)
-        repo.git.push('origin', self.release_deployment_branch())
+        with fab.lcd(self.local_repository_path):
+            fab.local('git push origin "{branch}"'.format(branch=self.release_branch))
+            fab.local('git push origin "{branch}"'.format(branch=self.release_deployment_branch()))
 
     def push(self):
-        self.push_origin()
+        if 'origin' in [_i.name for _i in self._get_local_repo().remotes]:
+            self.push_origin()
         self.push_release()
 
     def switch_release(self, commit=None, update_to_remote=None):
