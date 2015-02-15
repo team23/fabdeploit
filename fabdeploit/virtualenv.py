@@ -21,8 +21,8 @@ class Virtalenv(BaseCommandUtil):
     virtualenv_path = None
     requirements_file = None
 
-    def __init__(self, *kwargs):
-        super(Virtalenv, self).__init__(*kwargs)
+    def __init__(self, **kwargs):
+        super(Virtalenv, self).__init__(**kwargs)
         if self.virtualenv_path is None:
             raise RuntimeError('No virtualenv_path specified (class or constructor)')
 

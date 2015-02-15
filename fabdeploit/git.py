@@ -350,3 +350,49 @@ pull_origin = legacy_wrap(_legacy_git, 'pull_origin')
 push_release = legacy_wrap(_legacy_git, 'push_release')
 push_origin = legacy_wrap(_legacy_git, 'push_origin')
 switch_release = legacy_wrap(_legacy_git, 'switch_release')
+
+
+def _git_write_object(repo, commit, message=None, parents=None, actor=None):
+    warnings.warn('You are using the legacy function, please switch to class based version', PendingDeprecationWarning)
+
+    # create a new commit reusing the tree (meaning no file changes)
+    new_commit = git.Commit(repo, git.Commit.NULL_BIN_SHA)
+    new_commit.tree = commit.tree
+
+    # set commit date
+    unix_time = int(time())
+    offset = altzone
+    new_commit.authored_date = unix_time
+    new_commit.author_tz_offset = offset
+    # make sure we have a somewhat more linear history
+    # (gitg and possibly others will get confused otherwise)
+    if new_commit.authored_date == commit.authored_date:
+        new_commit.authored_date = new_commit.authored_date + 1
+    new_commit.committed_date = unix_time
+    new_commit.committer_tz_offset = offset
+    if new_commit.committed_date == commit.committed_date:
+        new_commit.committed_date = new_commit.committed_date + 1
+
+    # set author / comitter
+    if actor:
+        if isinstance(actor, basestring):
+            actor = git.Actor._from_string(actor)
+        new_commit.author = actor
+        new_commit.committer = actor
+    else:
+        cr = repo.config_reader()
+        new_commit.author = git.Actor.author(cr)
+        new_commit.committer = git.Actor.committer(cr)
+
+    # set commit message
+    if message:
+        new_commit.message = message
+    else:
+        new_commit.message = commit.message
+
+    # set parents
+    new_commit.parents = parents if not parents is None else []
+
+    # reuse encoding
+    new_commit.encoding = commit.encoding
+    return new_commit
