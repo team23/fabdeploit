@@ -8,16 +8,6 @@ from .utils import legacy_wrap
 import git
 
 
-# * env.deploy_git_repository: Path to the local git repository
-# * env.deploy_release_branch: Branch that should be released
-# * env.deploy_release_author: Author for new release commit (optional)
-# * env.deploy_release_message: Message used for release commit (optional)
-# * env.deploy_release_tag: Tag that should be created for release commit (optional)
-# * env.deploy_merge_release_back: Normally we merge the release commit back to
-#   the branch it originated from. You can turn this off (on by default)
-# * env.deploy_remote_git_repository: Remote git repository path
-
-
 class Git(BaseCommandUtil):
     local_repository_path = None
     remote_repository_path = None
