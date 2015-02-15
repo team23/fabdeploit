@@ -36,9 +36,10 @@ env.use_ssh_config = True
 @task
 def test():
     git = Git()
-    git.pull()
+    # git.pull()
     commit = git.release(merge_back=True)
-    git.push()
+    # git.push()
+    git.push_release()
     git.switch_release()
 
     virtualenv = Virtualenv()
