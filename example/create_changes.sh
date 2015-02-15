@@ -10,6 +10,8 @@ then
 fi
 
 cd test_repo || exit 1
+git checkout master || exit 1
+git reset --hard || exit 1
 
 while [ $COMMIT_COUNT -lt $NUM_COMMITS ]
 do
