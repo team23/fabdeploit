@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 import fabric.api as fab
-from . import virtualenv
 from .base import BaseCommandUtil
 from .utils import legacy_wrap
 import warnings
@@ -17,7 +16,7 @@ class Django(BaseCommandUtil):
 
     def run(self, command, *options):
         fab.run("%s %s %s %s" % (
-            virtualenv.python_bin(),
+            self.virtualenv.python_bin(),
             self.manage_path,
             command,
             ' '.join([o for o in options if not o is None]),
