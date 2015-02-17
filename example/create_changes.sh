@@ -29,7 +29,7 @@ do
         fi
         FILES_UPDATED=$[ $FILES_UPDATED + 1 ]
     done
-    git add .
+    git add [0-9]* REQUIREMENTS
     git commit -m "`date +%s`.$COMMIT_COUNT"
     sleep 1
     COMMIT_COUNT=$[ $COMMIT_COUNT + 1 ]

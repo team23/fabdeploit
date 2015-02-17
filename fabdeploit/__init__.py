@@ -5,6 +5,7 @@ from . import django
 from . import virtualenv
 
 Git = git.Git
+GitFilter = git.GitFilter
 Django = django.Django
 Virtualenv = virtualenv.Virtalenv
 Virtualenv2 = virtualenv.Virtalenv2
