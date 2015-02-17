@@ -39,26 +39,49 @@ class GitFilter(object):
     def __init__(self, repo, tree):
         self.repo = repo
         self.original_tree = tree
-        self.filtered_tree = git.Tree(self.repo, git.Tree.NULL_BIN_SHA)
+        self.filtered_tree = self._copy_tree(tree)
         self.changes = {}
 
     def filter(self):
         raise NotImplementedError('You should create your own apply() method in your own subclass')
 
     def write_object(self, obj):
+       # ensure all subelements are written as well
+        if obj.__class__.type == git.Tree.type:
+            # TODO: Allow working with full memory trees, see _add/_remove calls to write_object (should be removed)
+            # for _obj in obj:
+            #     if _obj.binsha == _obj.NULL_BIN_SHA:
+            #         self.write_object(_obj)
+            obj.cache.set_done()
+
+        # finally write all to disk
         return _git_raw_write_object(self.repo, obj)
 
     def execute(self):
         self.filter()
-        self._apply_changes()
-        self.filtered_tree.cache.set_done()
         self.write_object(self.filtered_tree)
         return self.filtered_tree
 
-    def _apply_changes(self):
-        pass
+    def _copy_tree(self, original, additions=None, excludes=None):
+        copied = git.Tree(self.repo, git.Tree.NULL_BIN_SHA, path=original.path)
+        copied._cache = []  # prefill cache, so gitdb does not try to read invalid object (NULL_BIN_SHA)
+        if excludes is None:
+            excludes = []
+        if additions:
+            excludes += [obj.name for obj in additions]
+        for obj in original:
+            if obj.type == git.Submodule.type:
+                # submodules somehow have no _name initialized, so we use last bit of path
+                if obj.path.split('/')[-1] not in excludes:
+                    copied.cache.add(obj.hexsha, obj.mode, obj.obj.path.split('/')[-1])
+            elif obj.name not in excludes:
+                copied.cache.add(obj.hexsha, obj.mode, obj.name)
+        if additions:
+            for obj in additions:
+                copied.cache.add(obj.hexsha, obj.mode, obj.name)
+        return copied
 
-    def _create_blob_object(self, filepath):
+    def _create_blob_from_file(self, filepath):
         from git.index.fun import stat_mode_to_index_mode
         from git.util import to_native_path_linux
 
@@ -71,18 +94,80 @@ class GitFilter(object):
         self.write_object(blob)
         return blob
 
-    def add(self, path):
+    def _git_path_parts(self, path):
+        from git.util import to_native_path_linux
+
+        return to_native_path_linux(path).split('/')
+
+    def _add(self, path):
         abspath = os.path.join(self.repo.working_tree_dir, path)
         if not os.path.exists(abspath):
             raise IOError('File not found (%s)' % path)
+
+        # construct newly added object
         if os.path.isfile(abspath) or os.path.islink(abspath):
-            blob = self._create_blob_object(path)
+            added_object = self._create_blob_from_file(path)
         elif os.path.isdir(abspath):
-            pass
+            raise NotImplementedError('TODO: Support adding whole trees')
 
+        # we need to update all objects down to root, so a stack is required
+        stack = []
 
-    def remove(self, path):
-        pass
+        # walk tree down
+        parts = self._git_path_parts(path)
+        parent = self.filtered_tree
+        for i, part in enumerate(parts[:-1]):
+            stack.append((parent, part))
+            try:
+                parent = parent[part]
+            except KeyError:
+                # tree does not exist, create an empty one
+                parent = git.Tree(self.repo, git.Tree.NULL_BIN_SHA, path='/'.join(parts[:i + 1]))
+                parent._cache = []  # prefill cache, so gitdb does not try to read invalid object (NULL_BIN_SHA)
+
+        # copy parent tree, exclude the removed item
+        changed = self._copy_tree(parent, additions=[added_object])
+
+        # walt tree up again, updating all objs
+        for parent, name in reversed(stack):
+            self.write_object(changed)
+            changed = self._copy_tree(parent, additions=[changed])
+        self.filtered_tree = changed
+
+    def add(self, *paths):
+        for path in paths:
+            self._add(path)
+
+    def _remove(self, path):
+        # we need to update all objects down to root, so a stack is required
+        stack = []
+
+        # walk tree down
+        parts = self._git_path_parts(path)
+        parent = self.filtered_tree
+        for part in parts[:-1]:
+            stack.append((parent, part))
+            try:
+                parent = parent[part]
+            except KeyError:
+                # tree does not exist, no need to delete anything
+                return
+
+        # copy parent tree, exclude the removed item
+        changed = self._copy_tree(parent, excludes=[parts[-1]])
+
+        # walt tree up again, updating all objs
+        for parent, name in reversed(stack):
+            if len(changed) == 0:
+                changed = self._copy_tree(parent, excludes=[changed.name])
+            else:
+                self.write_object(changed)
+                changed = self._copy_tree(parent, additions=[changed])
+        self.filtered_tree = changed
+
+    def remove(self, *paths):
+        for path in paths:
+            self._remove(path)
 
 
 class Git(BaseCommandUtil):
