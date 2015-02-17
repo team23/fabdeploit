@@ -9,11 +9,88 @@ from .utils import legacy_wrap
 import git
 
 
+def _git_raw_write_object(repo, obj):
+    from stat import S_ISLNK
+    from gitdb import IStream
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
+
+    if obj.__class__.type == git.Blob.type:
+        absfilepath = os.path.join(repo.working_tree_dir, obj.path)
+        st = os.lstat(absfilepath)
+        streamlen = st.st_size
+        if S_ISLNK(st.st_mode):
+            stream = StringIO(os.readlink(absfilepath))
+        else:
+            stream = open(absfilepath, 'rb')
+    else:
+        stream = StringIO()
+        obj._serialize(stream)
+        streamlen = stream.tell()
+        stream.seek(0)
+    istream = repo.odb.store(IStream(obj.__class__.type, streamlen, stream))
+    obj.binsha = istream.binsha
+    return obj
+
+
+class GitFilter(object):
+    def __init__(self, repo, tree):
+        self.repo = repo
+        self.original_tree = tree
+        self.filtered_tree = git.Tree(self.repo, git.Tree.NULL_BIN_SHA)
+        self.changes = {}
+
+    def filter(self):
+        raise NotImplementedError('You should create your own apply() method in your own subclass')
+
+    def write_object(self, obj):
+        return _git_raw_write_object(self.repo, obj)
+
+    def execute(self):
+        self.filter()
+        self._apply_changes()
+        self.filtered_tree.cache.set_done()
+        self.write_object(self.filtered_tree)
+        return self.filtered_tree
+
+    def _apply_changes(self):
+        pass
+
+    def _create_blob_object(self, filepath):
+        from git.index.fun import stat_mode_to_index_mode
+        from git.util import to_native_path_linux
+
+        absfilepath = os.path.join(self.repo.working_tree_dir, filepath)
+        st = os.lstat(absfilepath)
+        blob = git.Blob(repo=self.repo,
+                        binsha=git.Blob.NULL_BIN_SHA,
+                        mode=stat_mode_to_index_mode(st.st_mode),
+                        path=to_native_path_linux(filepath))
+        self.write_object(blob)
+        return blob
+
+    def add(self, path):
+        abspath = os.path.join(self.repo.working_tree_dir, path)
+        if not os.path.exists(abspath):
+            raise IOError('File not found (%s)' % path)
+        if os.path.isfile(abspath) or os.path.islink(abspath):
+            blob = self._create_blob_object(path)
+        elif os.path.isdir(abspath):
+            pass
+
+
+    def remove(self, path):
+        pass
+
+
 class Git(BaseCommandUtil):
     local_repository_path = None
     remote_repository_path = None
     release_author = None
     release_branch = None
+    release_commit_filter_class = None
 
     def __init__(self, **kwargs):
         super(Git, self).__init__(**kwargs)
@@ -78,19 +155,7 @@ class Git(BaseCommandUtil):
         return new_commit
 
     def _raw_write_object(self, obj):
-        from gitdb import IStream
-        try:
-            from cStringIO import StringIO
-        except ImportError:
-            from StringIO import StringIO
-
-        stream = StringIO()
-        obj._serialize(stream)
-        streamlen = stream.tell()
-        stream.seek(0)
-        istream = self._get_local_repo().odb.store(IStream(obj.__class__.type, streamlen, stream))
-        obj.binsha = istream.binsha
-        return obj
+        return _git_raw_write_object(self._get_local_repo(), obj)
 
     def _raw_update_branch(self, branch_name, commit):
         repo = self._get_local_repo()
@@ -114,14 +179,13 @@ class Git(BaseCommandUtil):
             raise RuntimeError('No origin exists in remotes')
 
         with fab.lcd(self.local_repository_path):
+            fab.local('git fetch origin')  # Make sure we fetch all changes
             fab.local('git checkout "{branch}"'.format(branch=self.release_branch))
             fab.local('git pull origin "{branch}"'.format(branch=self.release_branch))
-            if release_deployment_branch in repo.heads or \
-                    ('origin' in [_i.name for _i in repo.remotes] and
-                             release_deployment_branch in repo.remotes.origin.refs):
-                fab.local('git checkout "{branch}"'.format(branch=release_deployment_branch))
-                with fab.settings(warn_only=True):
-                    fab.local('git pull origin "{branch}"'.format(branch=release_deployment_branch))
+            if ('origin' in [_i.name for _i in repo.remotes] and
+                     release_deployment_branch in repo.remotes.origin.refs):
+                # We just update our local release branch to the remote version, no questions asked
+                self._raw_update_branch(release_deployment_branch, repo.remotes.origin.refs[release_deployment_branch])
 
     def pull(self):
         if 'origin' in [_i.name for _i in self._get_local_repo().remotes]:
@@ -165,7 +229,11 @@ class Git(BaseCommandUtil):
         # add files) or changing the meta data (author, date, message).
         # I think this only should be used for tree filters, as other data may be
         # set before even creating the commit.
-        pass
+        if self.release_commit_filter_class is not None:
+            self.release_commit.tree = self.release_commit_filter_class(
+                self._get_local_repo(),
+                self.release_commit.tree,
+            ).execute()
 
     def tag_release(self, tag_name):
         if self.release_commit is None:
@@ -353,18 +421,6 @@ switch_release = legacy_wrap(_legacy_git, 'switch_release')
 
 
 def _git_write_object(repo, obj):
-    warnings.warn('You are using the legacy function, please switch to class based version', PendingDeprecationWarning)
+    warnings.warn('Function was renamed to _git_raw_write_object()', PendingDeprecationWarning)
 
-    from gitdb import IStream
-    try:
-        from cStringIO import StringIO
-    except ImportError:
-        from StringIO import StringIO
-
-    stream = StringIO()
-    obj._serialize(stream)
-    streamlen = stream.tell()
-    stream.seek(0)
-    istream = repo.odb.store(IStream(obj.__class__.type, streamlen, stream))
-    obj.binsha = istream.binsha
-    return obj
+    return _git_raw_write_object(repo, obj)
