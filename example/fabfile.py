@@ -15,17 +15,17 @@ class GitFilter(fabdeploit.GitFilter):
             local('echo $RANDOM > FOOBAR')
             self.add('FOOBAR')
 
-            local('mkdir -p a1/b/c/d/e/f')
-            local('echo $RANDOM > a1/b/c/d/e/f/1')
-            self.add('a1/b/c/d/e/f/1')
+            local('mkdir -p a1/b')
+            local('echo $RANDOM > a1/b/1')
+            self.add('a1/b/1')
 
-            local('mkdir -p a2/b/c/d/e/f')
-            local('echo $RANDOM > a2/b/c/d/e/f/2')
-            self.add('a2/b/c/d/e/f/2')
+            local('mkdir -p a2/b')
+            local('echo $RANDOM > a2/b/2')
+            self.add('a2/b/2')
 
-            local('mkdir -p a3/b/c/d/e/f')
-            local('echo $RANDOM > a3/b/c/d/e/f/3')
-            self.add('a3/b/c/d/e/f/3')
+            local('mkdir -p a3/b')
+            local('echo $RANDOM > a3/b/3')
+            self.add('a3/b/3')
 
 
 class Git(fabdeploit.Git):

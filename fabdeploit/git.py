@@ -35,6 +35,52 @@ def _git_raw_write_object(repo, obj):
     return obj
 
 
+class TemporaryTree(object):
+    type = git.Tree.type
+    binsha = git.Tree.NULL_BIN_SHA
+
+    def __init__(self, repo, path):
+        self.repo = repo
+        self.path = path
+        self._objs = {}
+
+    def add(self, name, obj):
+        self._objs[name] = obj
+
+    @property
+    def name(self):
+        return os.path.basename(self.path)
+
+    def __iter__(self):
+        for item in self._objs.values():
+            yield item
+
+    def __getitem__(self, item):
+        return self._objs[item]
+
+    def save(self):
+        tree = git.Tree(self.repo, git.Tree.NULL_BIN_SHA, path=self.path)
+        tree._cache = []  # prefill cache, so gitdb does not try to read invalid object (NULL_BIN_SHA)
+
+        # ensure all subelements are written as well
+        for name, obj in self._objs.iteritems():
+            if obj.binsha == obj.NULL_BIN_SHA:
+                if isinstance(obj, TemporaryTree):
+                    obj = obj.save()
+                else:
+                    obj = _git_raw_write_object(self.repo, obj)
+
+            if obj.type == git.Submodule.type:
+                # submodules somehow have no _name initialized, so we use last bit of path
+                tree.cache.add(obj.hexsha, obj.mode, os.path.basename(obj.path))
+            else:
+                tree.cache.add(obj.hexsha, obj.mode, name)
+
+        # finally write self
+        tree.cache.set_done()
+        return _git_raw_write_object(self.repo, tree)
+
+
 class GitFilter(object):
     def __init__(self, repo, tree):
         self.repo = repo
@@ -45,40 +91,27 @@ class GitFilter(object):
     def filter(self):
         raise NotImplementedError('You should create your own apply() method in your own subclass')
 
-    def write_object(self, obj):
-       # ensure all subelements are written as well
-        if obj.__class__.type == git.Tree.type:
-            # TODO: Allow working with full memory trees, see _add/_remove calls to write_object (should be removed)
-            # for _obj in obj:
-            #     if _obj.binsha == _obj.NULL_BIN_SHA:
-            #         self.write_object(_obj)
-            obj.cache.set_done()
-
-        # finally write all to disk
-        return _git_raw_write_object(self.repo, obj)
-
     def execute(self):
         self.filter()
-        self.write_object(self.filtered_tree)
+        self.filtered_tree.save()
         return self.filtered_tree
 
     def _copy_tree(self, original, additions=None, excludes=None):
-        copied = git.Tree(self.repo, git.Tree.NULL_BIN_SHA, path=original.path)
-        copied._cache = []  # prefill cache, so gitdb does not try to read invalid object (NULL_BIN_SHA)
+        copied = TemporaryTree(self.repo, path=original.path)
         if excludes is None:
             excludes = []
-        if additions:
+        if additions:  # skip all additions on first copy run
             excludes += [obj.name for obj in additions]
         for obj in original:
             if obj.type == git.Submodule.type:
                 # submodules somehow have no _name initialized, so we use last bit of path
-                if obj.path.split('/')[-1] not in excludes:
-                    copied.cache.add(obj.hexsha, obj.mode, obj.obj.path.split('/')[-1])
+                if os.path.basename(obj.path) not in excludes:
+                    copied.add(obj)
             elif obj.name not in excludes:
-                copied.cache.add(obj.hexsha, obj.mode, obj.name)
+                copied.add(obj)
         if additions:
             for obj in additions:
-                copied.cache.add(obj.hexsha, obj.mode, obj.name)
+                copied.add(obj)
         return copied
 
     def _create_blob_from_file(self, filepath):
@@ -91,7 +124,7 @@ class GitFilter(object):
                         binsha=git.Blob.NULL_BIN_SHA,
                         mode=stat_mode_to_index_mode(st.st_mode),
                         path=to_native_path_linux(filepath))
-        self.write_object(blob)
+        blob = _git_raw_write_object(self.repo, blob)
         return blob
 
     def _git_path_parts(self, path):
@@ -130,7 +163,6 @@ class GitFilter(object):
 
         # walt tree up again, updating all objs
         for parent, name in reversed(stack):
-            self.write_object(changed)
             changed = self._copy_tree(parent, additions=[changed])
         self.filtered_tree = changed
 
@@ -161,7 +193,6 @@ class GitFilter(object):
             if len(changed) == 0:
                 changed = self._copy_tree(parent, excludes=[changed.name])
             else:
-                self.write_object(changed)
                 changed = self._copy_tree(parent, additions=[changed])
         self.filtered_tree = changed
 
