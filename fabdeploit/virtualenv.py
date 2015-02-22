@@ -14,7 +14,7 @@ from .utils import select_bin, CommandNotFoundException, legacy_wrap
 # inside the virtualenv as well.
 
 
-class Virtalenv(BaseCommandUtil):
+class Virtualenv(BaseCommandUtil):
     python_commands = ('python', 'python.exe',)
     pip_commands = ('pip',)
     virtualenv_commands = ('virtualenv',)
@@ -22,7 +22,7 @@ class Virtalenv(BaseCommandUtil):
     requirements_file = None
 
     def __init__(self, **kwargs):
-        super(Virtalenv, self).__init__(**kwargs)
+        super(Virtualenv, self).__init__(**kwargs)
         if self.virtualenv_path is None:
             raise RuntimeError('No virtualenv_path specified (class or constructor)')
 
@@ -80,23 +80,27 @@ class Virtalenv(BaseCommandUtil):
             requirements_file=self.requirements_file,
         ))
 
+    @property
+    def git(self):
+        return VirtualenvGit(self)
 
-class Virtalenv2(Virtalenv):
+
+class Virtualenv2(Virtualenv):
     python_commands = ('python2', 'python', 'python2.exe', 'python.exe',)
     pip_commands = ('pip2', 'pip',)
     virtualenv_commands = ('virtualenv2', 'virtualenv',)
 
 
-class Virtalenv3(Virtalenv):
+class Virtualenv3(Virtualenv):
     python_commands = ('python3', 'python', 'python3.exe', 'python.exe',)
     pip_commands = ('pip3', 'pip',)
     virtualenv_commands = ('virtualenv3', 'virtualenv',)
 
 
-class VirtalenvGit(BaseCommandUtil):
+class VirtualenvGit(BaseCommandUtil):
     def __init__(self, virtualenv, **kwargs):
         self.virtualenv = virtualenv
-        super(VirtalenvGit, self).__init__(**kwargs)
+        super(VirtualenvGit, self).__init__(**kwargs)
 
     def commit(self, message=None, tag=None):
         if message is None:
@@ -132,7 +136,7 @@ def _legacy_virtualenv():
 
     warnings.warn('You are using the legacy function, please switch to class based version', PendingDeprecationWarning)
 
-    return Virtalenv2(virtualenv_path=fab.env.deploy_env_path,
+    return Virtualenv2(virtualenv_path=fab.env.deploy_env_path,
                       requirements_file=fab.env.deploy_env_requirements)
 
 
@@ -140,7 +144,7 @@ def _legacy_virtualenv_git():
 
     warnings.warn('You are using the legacy function, please switch to class based version', PendingDeprecationWarning)
 
-    return VirtalenvGit(_legacy_virtualenv())
+    return VirtualenvGit(_legacy_virtualenv())
 
 
 _env_bin = legacy_wrap(_legacy_virtualenv, 'select_bin')
