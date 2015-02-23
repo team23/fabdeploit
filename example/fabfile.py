@@ -56,6 +56,4 @@ def test():
     virtualenv = Virtualenv()
     virtualenv.init()
     virtualenv.update()
-
-    virtualenv_git = fabdeploit.VirtalenvGit(virtualenv)
-    virtualenv_git.commit(tag='release/%s' % commit.hexsha)
+    virtualenv.git.commit(tag='release/%s' % commit.hexsha)

@@ -94,7 +94,7 @@ class GitFilter(object):
 
     def execute(self):
         self.filter()
-        self.filtered_tree.save()
+        self.filtered_tree = self.filtered_tree.save()
         return self.filtered_tree
 
     def _copy_tree(self, original, additions=None, excludes=None):
@@ -156,8 +156,7 @@ class GitFilter(object):
                 parent = parent[part]
             except KeyError:
                 # tree does not exist, create an empty one
-                parent = git.Tree(self.repo, git.Tree.NULL_BIN_SHA, path='/'.join(parts[:i + 1]))
-                parent._cache = []  # prefill cache, so gitdb does not try to read invalid object (NULL_BIN_SHA)
+                parent = TemporaryTree(self.repo, path='/'.join(parts[:i + 1]))
 
         # copy parent tree, exclude the removed item
         changed = self._copy_tree(parent, additions=[added_object])

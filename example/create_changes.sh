@@ -10,8 +10,6 @@ then
 fi
 
 cd test_repo || exit 1
-git checkout master || exit 1
-git reset --hard || exit 1
 
 while [ $COMMIT_COUNT -lt $NUM_COMMITS ]
 do
@@ -20,7 +18,7 @@ do
     while [ $FILES_UPDATED -lt 15 ]
     do
         # max 30 files
-        FILENAME=$[ $RANDOM % 30 ]
+        FILENAME=$[ $RANDOM % 50 ]
         if [ $[ $RANDOM % 5 ] -eq 0 ]
         then
             echo $RANDOM > $FILENAME
