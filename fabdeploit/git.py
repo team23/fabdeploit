@@ -44,8 +44,8 @@ class TemporaryTree(object):
         self.path = path
         self._objs = {}
 
-    def add(self, name, obj):
-        self._objs[name] = obj
+    def add(self, obj):
+        self._objs[obj.name] = obj
 
     @property
     def name(self):
