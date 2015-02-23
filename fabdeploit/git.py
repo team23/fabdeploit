@@ -38,6 +38,7 @@ def _git_raw_write_object(repo, obj):
 class TemporaryTree(object):
     type = git.Tree.type
     binsha = git.Tree.NULL_BIN_SHA
+    NULL_BIN_SHA = git.Tree.NULL_BIN_SHA
 
     def __init__(self, repo, path):
         self.repo = repo
