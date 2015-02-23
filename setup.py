@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "fabdeploit",
-    version = "0.10.0",
+    version = "0.10.1",
     description = 'fabric utilities for git based deployments',
     author = 'David Danier',
     author_email = 'david.danier@team23.de',
