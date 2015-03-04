@@ -24,9 +24,9 @@ def select_bin(*commands, **kwargs):
                     return command_path
             else:
                 command_path = os.path.join(path, command)
-                if posixpath.exists(command_path):
+                if os.path.exists(command_path):
                     return command_path
-    raise CommandNotFoundException('Could not find suitable command for %s' % '/'.join(commands))
+    raise CommandNotFoundException('Could not find suitable binary for %s' % ','.join(commands))
 
 
 def legacy_wrap(legacy_constructor, methodname):
