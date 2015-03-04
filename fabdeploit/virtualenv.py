@@ -19,6 +19,7 @@ class Virtualenv(BaseCommandUtil):
     pip_commands = ('pip',)
     virtualenv_commands = ('virtualenv',)
     virtualenv_path = None
+    virtualenv_download_branch = 'master'  # used for downloading current virtualenv from github
     requirements_file = None
 
     def __init__(self, **kwargs):
@@ -54,8 +55,9 @@ class Virtualenv(BaseCommandUtil):
             download_virtualenv_path = posixpath.join(download_path, 'virtualenv')
             download_virtualenv_bin = posixpath.join(download_virtualenv_path, 'virtualenv.py')
             fab.run('mkdir -p "{download_path}"'.format(download_path=download_path))
-            fab.run('git clone --depth 1 --branch master https://github.com/pypa/virtualenv.git {clone_path}'.format(
+            fab.run('git clone --depth 1 --branch {branch} https://github.com/pypa/virtualenv.git {clone_path}'.format(
                 # git_bin=select_bin('git'),
+                branch=self.virtualenv_download_branch,
                 clone_path=download_virtualenv_path,
             ))
             virtualenv_bin = '{python_bin} "{virtualenv_download}"'.format(
