@@ -61,8 +61,31 @@ class Drupal(BaseCommandUtil):
                 ' '.join([o for o in options if not o is None]),
             ))
 
-    def cc(self, _type='all'):
+    def cache_clear(self, _type='all'):
         self.run(
-            'cc',
+            'cache-clear',
             _type,
         )
+    cc = cache_clear
+
+    def updatedb(self):
+        self.run(
+            'updatedb',
+        )
+    updb = updatedb
+
+    def pm_enable(self, *packages):
+        self.run(
+            'pm-enable',
+            '--yes',
+            *packages,
+        )
+    en = pm_enable
+
+    def pm_disable(self, *packages):
+        self.run(
+            'pm-disable',
+            '--yes',
+            *packages,
+        )
+    dis = pm_disable
