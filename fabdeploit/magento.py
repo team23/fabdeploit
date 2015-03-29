@@ -1,8 +1,5 @@
 from __future__ import absolute_import
-import fabric.api as fab
-import posixpath
 from .base import BaseCommandUtil
-from .utils import select_bin
 
 
 class Magento(BaseCommandUtil):
@@ -16,16 +13,14 @@ class Magento(BaseCommandUtil):
             raise RuntimeError('No magento_path specified (class or constructor)')
 
     def php_bin(self):
-        return select_bin(*self.php_commands)
+        return self._select_bin(*self.php_commands)
 
     def shell_command_bin(self, shell_command):
-        from fabric.contrib.files import exists as remote_exists
-
         php_bin = self.php_bin()
-        shell_bin = posixpath.join(self.magento_path, 'shell', shell_command)
+        shell_bin = self._path_join(self.magento_path, 'shell', shell_command)
         php_ini_path = self.php_ini_path
 
-        if not remote_exists(shell_bin):
+        if not self._exists(shell_bin):
             raise RuntimeError("%s does not exist inside Magento install (shell/)" % shell_command)
 
         if php_ini_path:
@@ -39,8 +34,8 @@ class Magento(BaseCommandUtil):
         )
 
     def run(self, shell_command, *options):
-        with fab.cd(self.magento_path):
-            fab.run("%s %s" % (
+        with self._cd(self.magento_path):
+            self._run("%s %s" % (
                 self.shell_command_bin(shell_command),
                 ' '.join([o for o in options if not o is None]),
             ))

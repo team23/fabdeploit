@@ -15,7 +15,7 @@ class Django(BaseCommandUtil):
             raise RuntimeError('No manage_path specified (class or constructor)')
 
     def run(self, command, *options):
-        fab.run("%s %s %s %s" % (
+        self._run("%s %s %s %s" % (
             self.virtualenv.python_bin(),
             self.manage_path,
             command,

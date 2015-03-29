@@ -1,8 +1,5 @@
 from __future__ import absolute_import
-import fabric.api as fab
-import posixpath
 from .base import BaseCommandUtil
-from .utils import select_bin
 
 
 class Drupal(BaseCommandUtil):
@@ -20,27 +17,27 @@ class Drupal(BaseCommandUtil):
             raise RuntimeError('No drush_path specified (class or constructor)')
 
     def php_bin(self):
-        return select_bin(*self.php_commands)
+        return self._select_bin(*self.php_commands)
 
     def init(self, force=False):
         from fabric.contrib import files
 
-        if not force and files.exists(self.drush_path):
+        if not force and self._exists(self.drush_path):
             return
 
         # TODO: Should {drush_path} be deleted on force?
-        #if force and files.exists(self.drush_path):
-        #    fab.run('rm -rf "{drush_path}"'.format(drush_path=self.drush_path))
+        #if force and self._exists(self.drush_path):
+        #    self._run('rm -rf "{drush_path}"'.format(drush_path=self.drush_path))
 
-        fab.run('mkdir -p "{drush_path}"'.format(drush_path=self.drush_path))
-        fab.run('git clone --depth 1 --branch {branch} https://github.com/drush-ops/drush.git {drush_path}'.format(
+        self._run('mkdir -p "{drush_path}"'.format(drush_path=self.drush_path))
+        self._run('git clone --depth 1 --branch {branch} https://github.com/drush-ops/drush.git {drush_path}'.format(
             branch=self.drush_download_branch,
             drush_path=self.drush_path,
         ))
 
     def drush_bin(self):
         php_bin = self.php_bin()
-        drush_bin = posixpath.join(self.drush_path, 'drush.php')
+        drush_bin = self._path_join(self.drush_path, 'drush.php')
         php_ini_path = self.php_ini_path
 
         if php_ini_path:
@@ -54,8 +51,8 @@ class Drupal(BaseCommandUtil):
         )
 
     def run(self, command, *options):
-        with fab.cd(self.drupal_path):
-            fab.run("%s %s %s" % (
+        with self._cd(self.drupal_path):
+            self._run("%s %s %s" % (
                 self.drush_bin(),
                 command,
                 ' '.join([o for o in options if not o is None]),

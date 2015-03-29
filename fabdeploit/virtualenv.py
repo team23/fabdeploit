@@ -2,9 +2,8 @@ from __future__ import absolute_import
 import datetime
 import warnings
 import fabric.api as fab
-import posixpath
 from .base import BaseCommandUtil
-from .utils import select_bin, CommandNotFoundException, legacy_wrap
+from .utils import CommandNotFoundException, legacy_wrap
 
 
 # IDEA:
@@ -28,9 +27,9 @@ class Virtualenv(BaseCommandUtil):
             raise RuntimeError('No virtualenv_path specified (class or constructor)')
 
     def select_bin(self, *commands):
-        return select_bin(*commands, paths=[
-            posixpath.join(self.virtualenv_path, 'bin'),  # UNIX
-            posixpath.join(self.virtualenv_path, 'Scripts'),  # Windows
+        return self._select_bin(*commands, paths=[
+            self._path_join(self.virtualenv_path, 'bin'),  # UNIX
+            self._path_join(self.virtualenv_path, 'Scripts'),  # Windows
         ])
 
     def python_bin(self):
@@ -43,29 +42,27 @@ class Virtualenv(BaseCommandUtil):
         return self.select_bin(*self.virtualenv_commands)
 
     def init(self, force=False):
-        from fabric.contrib import files
-
-        if not force and files.exists(self.virtualenv_path):
+        if not force and self._exists(self.virtualenv_path):
             return
 
         try:
             virtualenv_bin = self.virtalenv_bin()
         except CommandNotFoundException:
-            download_path = posixpath.join(self.virtualenv_path, 'download')
-            download_virtualenv_path = posixpath.join(download_path, 'virtualenv')
-            download_virtualenv_bin = posixpath.join(download_virtualenv_path, 'virtualenv.py')
-            fab.run('mkdir -p "{download_path}"'.format(download_path=download_path))
-            fab.run('git clone --depth 1 --branch {branch} https://github.com/pypa/virtualenv.git {clone_path}'.format(
+            download_path = self._path_join(self.virtualenv_path, 'download')
+            download_virtualenv_path = self._path_join(download_path, 'virtualenv')
+            download_virtualenv_bin = self._path_join(download_virtualenv_path, 'virtualenv.py')
+            self._run('mkdir -p "{download_path}"'.format(download_path=download_path))
+            self._run('git clone --depth 1 --branch {branch} https://github.com/pypa/virtualenv.git {clone_path}'.format(
                 # git_bin=select_bin('git'),
                 branch=self.virtualenv_download_branch,
                 clone_path=download_virtualenv_path,
             ))
             virtualenv_bin = '{python_bin} "{virtualenv_download}"'.format(
-                python_bin=select_bin(*self.python_commands),  # global search, NOT self.select_bin as virtualenv does not exist yet
+                python_bin=self._select_bin(*self.python_commands),  # global search, NOT self.select_bin as virtualenv does not exist yet
                 virtualenv_download=download_virtualenv_bin,
             )
 
-        fab.run('{virtualenv_bin} --clear --no-site-packages "{virtualenv_path}"'.format(
+        self._run('{virtualenv_bin} --clear --no-site-packages "{virtualenv_path}"'.format(
             virtualenv_bin=virtualenv_bin,
             virtualenv_path=self.virtualenv_path,
         ))
@@ -77,7 +74,7 @@ class Virtualenv(BaseCommandUtil):
         if self.requirements_file is None:
             raise RuntimeError('No requirements_file specified (class or constructor)')
 
-        fab.run('{pip_bin} install -Ur "{requirements_file}"'.format(
+        self._run('{pip_bin} install -Ur "{requirements_file}"'.format(
             pip_bin=self.pip_bin(),
             requirements_file=self.requirements_file,
         ))
@@ -99,35 +96,34 @@ class Virtualenv3(Virtualenv):
     virtualenv_commands = ('virtualenv3', 'virtualenv',)
 
 
-class VirtualenvGit(BaseCommandUtil):
+class VirtualenvGit(object):
     def __init__(self, virtualenv, **kwargs):
         self.virtualenv = virtualenv
-        super(VirtualenvGit, self).__init__(**kwargs)
 
     def commit(self, message=None, tag=None):
         if message is None:
             message = datetime.datetime.now().isoformat()
-        with fab.cd(self.virtualenv.virtualenv_path):
+        with self.virtualenv._cd(self.virtualenv.virtualenv_path):
             # (re) initialize
-            fab.run('git init')
+            self.virtualenv._run('git init')
             # TODO: Make sure this is done right:
             ## switch back to latest commit
             #fab.run('git checkout master')
             # addremove everything
-            fab.run('git add -A')
-            fab.run('git ls-files --deleted -z | xargs -r -0 git rm')
+            self.virtualenv._run('git add -A')
+            self.virtualenv._run('git ls-files --deleted -z | xargs -r -0 git rm')
             # create commit (may fail if no changes happened)
             with fab.settings(warn_only=True):
-                fab.run('git commit --allow-empty -m "%s"' % message)
+                self.virtualenv._run('git commit --allow-empty -m "%s"' % message)
             # create tag if wanted
             if tag:
-                fab.run('git tag "%s"' % tag)
+                self.virtualenv._run('git tag "%s"' % tag)
 
     def switch_commit(self, commit):
-        with fab.cd(self.virtualenv.virtualenv_path):
+        with self.virtualenv._cd(self.virtualenv.virtualenv_path):
             # see git.py on why we do checkout + reset
-            fab.run('git checkout "%s"' % commit)
-            fab.run('git reset --hard')
+            self.virtualenv._run('git checkout "%s"' % commit)
+            self.virtualenv._run('git reset --hard')
 
 
 # BACKWARDS COMPATIBILITY
