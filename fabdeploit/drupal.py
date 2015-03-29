@@ -46,7 +46,7 @@ class Drupal(BaseCommandUtil):
         if php_ini_path:
             format_str = '{php_bin} -c {php_ini_path} {drush_bin} --php="{php_bin} -c {php_ini_path}"'
         else:
-            format_str ='{php_bin} {drush_bin} --php="{php_bin}"'
+            format_str = '{php_bin} {drush_bin} --php="{php_bin}"'
         return format_str.format(
             php_bin=php_bin,
             drush_bin=drush_bin,
