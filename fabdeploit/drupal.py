@@ -75,7 +75,7 @@ class Drupal(BaseCommandUtil):
         self.run(
             'pm-enable',
             '--yes',
-            *packages,
+            *packages
         )
     en = pm_enable
 
@@ -83,7 +83,7 @@ class Drupal(BaseCommandUtil):
         self.run(
             'pm-disable',
             '--yes',
-            *packages,
+            *packages
         )
     dis = pm_disable
 
