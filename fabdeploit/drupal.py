@@ -89,3 +89,17 @@ class Drupal(BaseCommandUtil):
             *packages,
         )
     dis = pm_disable
+
+    def variable_set(self, variable_name, variable_value):
+        self.run(
+            'variable-set',
+            variable_name,
+            variable_value,
+        )
+    vset = variable_set
+
+    def maintenance_enable(self):
+        self.variable_set('maintenance_mode', '1')
+
+    def maintenance_disable(self):
+        self.variable_set('maintenance_mode', '0')
