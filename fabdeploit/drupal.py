@@ -38,7 +38,7 @@ class Drupal(BaseCommandUtil):
     def drush_bin(self):
         php_bin = self.php_bin()
         drush_bin = self._path_join(self._abs_path(self.drush_path), 'drush.php')
-        php_ini_path = self._abs_path(self.php_ini_path)
+        php_ini_path = self._abs_path(self.php_ini_path) if self.php_ini_path else None
 
         if php_ini_path:
             format_str = '{php_bin} -c {php_ini_path} {drush_bin} --php="{php_bin} -c {php_ini_path}"'
