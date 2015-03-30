@@ -17,8 +17,8 @@ class Magento(BaseCommandUtil):
 
     def shell_command_bin(self, shell_command):
         php_bin = self.php_bin()
-        shell_bin = self._path_join(self.magento_path, 'shell', shell_command)
-        php_ini_path = self.php_ini_path
+        shell_bin = self._path_join(self._abs_path(self.magento_path), 'shell', shell_command)
+        php_ini_path = self._abs_path(self.php_ini_path)
 
         if not self._exists(shell_bin):
             raise RuntimeError("%s does not exist inside Magento install (shell/)" % shell_command)
@@ -34,7 +34,7 @@ class Magento(BaseCommandUtil):
         )
 
     def run(self, shell_command, *options):
-        with self._cd(self.magento_path):
+        with self._cd(self._abs_path(self.magento_path)):
             self._run("%s %s" % (
                 self.shell_command_bin(shell_command),
                 ' '.join([o for o in options if not o is None]),
@@ -67,7 +67,7 @@ class Magento(BaseCommandUtil):
         )
 
     def maintenance_enable(self):
-        self._run('touch "%s"' % self._path_join(self.magento_path, 'maintenance.flag'))
+        self._run('touch "%s"' % self._path_join(self._abs_path(self.magento_path), 'maintenance.flag'))
 
     def maintenance_disable(self):
-        self._run('rm -f "%s"' % self._path_join(self.magento_path, 'maintenance.flag'))
+        self._run('rm -f "%s"' % self._path_join(self._abs_path(self.magento_path), 'maintenance.flag'))

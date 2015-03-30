@@ -13,11 +13,21 @@ class BaseCommandUtil(object):
             else:
                 raise RuntimeError('Unknown key {key}'.format(key=key))
 
+    def _pwd(self):
+        try:
+            return self._pwd_path
+        except AttributeError:
+            self._pwd_path = self._run('pwd')
+            return self._pwd_path
+
+    def _abs_path(self, path):
+        return self._path_join(self._pwd(), path)
+
     def _select_bin(self, *commands, **kwargs):
         return select_bin(*commands, **kwargs)
 
     def _run(self, *args, **kwargs):
-        fab.run(*args, **kwargs)
+        return fab.run(*args, **kwargs)
 
     def _exists(self, path):
         return files.exists(path)

@@ -29,16 +29,16 @@ class Drupal(BaseCommandUtil):
         #if force and self._exists(self.drush_path):
         #    self._run('rm -rf "{drush_path}"'.format(drush_path=self.drush_path))
 
-        self._run('mkdir -p "{drush_path}"'.format(drush_path=self.drush_path))
+        self._run('mkdir -p "{drush_path}"'.format(drush_path=self._abs_path(self.drush_path)))
         self._run('git clone --depth 1 --branch {branch} https://github.com/drush-ops/drush.git {drush_path}'.format(
             branch=self.drush_download_branch,
-            drush_path=self.drush_path,
+            drush_path=self._abs_path(self.drush_path),
         ))
 
     def drush_bin(self):
         php_bin = self.php_bin()
-        drush_bin = self._path_join(self.drush_path, 'drush.php')
-        php_ini_path = self.php_ini_path
+        drush_bin = self._path_join(self._abs_path(self.drush_path), 'drush.php')
+        php_ini_path = self._abs_path(self.php_ini_path)
 
         if php_ini_path:
             format_str = '{php_bin} -c {php_ini_path} {drush_bin} --php="{php_bin} -c {php_ini_path}"'
@@ -51,7 +51,7 @@ class Drupal(BaseCommandUtil):
         )
 
     def run(self, command, *options):
-        with self._cd(self.drupal_path):
+        with self._cd(self._abs_path(self.drupal_path)):
             self._run("%s %s %s" % (
                 self.drush_bin(),
                 command,

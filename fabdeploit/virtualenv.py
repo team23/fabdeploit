@@ -28,8 +28,8 @@ class Virtualenv(BaseCommandUtil):
 
     def select_bin(self, *commands):
         return self._select_bin(*commands, paths=[
-            self._path_join(self.virtualenv_path, 'bin'),  # UNIX
-            self._path_join(self.virtualenv_path, 'Scripts'),  # Windows
+            self._path_join(self._abs_path(self.virtualenv_path), 'bin'),  # UNIX
+            self._path_join(self._abs_path(self.virtualenv_path), 'Scripts'),  # Windows
         ])
 
     def python_bin(self):
@@ -42,13 +42,13 @@ class Virtualenv(BaseCommandUtil):
         return self.select_bin(*self.virtualenv_commands)
 
     def init(self, force=False):
-        if not force and self._exists(self.virtualenv_path):
+        if not force and self._exists(self._abs_path(self.virtualenv_path)):
             return
 
         try:
             virtualenv_bin = self.virtalenv_bin()
         except CommandNotFoundException:
-            download_path = self._path_join(self.virtualenv_path, 'download')
+            download_path = self._path_join(self._abs_path(self.virtualenv_path), 'download')
             download_virtualenv_path = self._path_join(download_path, 'virtualenv')
             download_virtualenv_bin = self._path_join(download_virtualenv_path, 'virtualenv.py')
             self._run('mkdir -p "{download_path}"'.format(download_path=download_path))
@@ -76,7 +76,7 @@ class Virtualenv(BaseCommandUtil):
 
         self._run('{pip_bin} install -Ur "{requirements_file}"'.format(
             pip_bin=self.pip_bin(),
-            requirements_file=self.requirements_file,
+            requirements_file=self._abs_path(self.requirements_file),
         ))
 
     @property
@@ -103,7 +103,7 @@ class VirtualenvGit(object):
     def commit(self, message=None, tag=None):
         if message is None:
             message = datetime.datetime.now().isoformat()
-        with self.virtualenv._cd(self.virtualenv.virtualenv_path):
+        with self.virtualenv._cd(self.virtualenv._abs_path(self.virtualenv.virtualenv_path)):
             # (re) initialize
             self.virtualenv._run('git init')
             # TODO: Make sure this is done right:
@@ -120,7 +120,7 @@ class VirtualenvGit(object):
                 self.virtualenv._run('git tag "%s"' % tag)
 
     def switch_commit(self, commit):
-        with self.virtualenv._cd(self.virtualenv.virtualenv_path):
+        with self.virtualenv._cd(self.virtualenv._abs_path(self.virtualenv.virtualenv_path)):
             # see git.py on why we do checkout + reset
             self.virtualenv._run('git checkout "%s"' % commit)
             self.virtualenv._run('git reset --hard')

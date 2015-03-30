@@ -17,7 +17,7 @@ class Django(BaseCommandUtil):
     def run(self, command, *options):
         self._run("%s %s %s %s" % (
             self.virtualenv.python_bin(),
-            self.manage_path,
+            self._abs_path(self.manage_path),
             command,
             ' '.join([o for o in options if not o is None]),
         ))
