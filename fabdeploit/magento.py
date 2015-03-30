@@ -65,3 +65,9 @@ class Magento(BaseCommandUtil):
             'clean',
             '--days %d' % days if days else None,
         )
+
+    def maintenance_enable(self):
+        self._run('touch "%s"' % self._path_join(self.magento_path, 'maintenance.flag'))
+
+    def maintenance_disable(self):
+        self._run('rm -f "%s"' % self._path_join(self.magento_path, 'maintenance.flag'))
