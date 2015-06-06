@@ -39,7 +39,7 @@ class Virtualenv(BaseCommandUtil):
         return self.select_bin(*self.pip_commands)
 
     def virtalenv_bin(self):
-        return self.select_bin(*self.virtualenv_commands)
+        return self._select_bin(*self.virtualenv_commands)  # global search, NOT self.select_bin as virtualenv does not exist yet
 
     def init(self, force=False):
         if not force and self._exists(self._abs_path(self.virtualenv_path)):
