@@ -169,7 +169,7 @@ Workflow
 .. code:: python
 
     git = Git(local_repository_path="…", remote_repository_path="…", release_branch="…")
-    git.pill()  # Make sure we have all remote changes
+    git.pull()  # Make sure we have all remote changes
     git.create_release_commit("New release")
     git.push()  # Make sure the new release is copied to origin and server
     git.switch_release()  # Apply all file changes
