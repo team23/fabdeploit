@@ -36,3 +36,10 @@ Reference:
 
    ref/index
 
+Examples:
+---------
+
+.. toctree::
+   :maxdepth: 2
+
+   examples/index
