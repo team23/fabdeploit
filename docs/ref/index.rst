@@ -15,7 +15,7 @@ like intended.
 Below you will find an overview of all classes, options, methods and an example workflow.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    git
    virtualenv
