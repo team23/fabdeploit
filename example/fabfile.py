@@ -51,6 +51,7 @@ def test():
     git.pull()
     commit = git.release(merge_back=True)
     git.push()
+    # git.webserver_harden_remote_git()
     git.switch_release()
 
     virtualenv = Virtualenv()

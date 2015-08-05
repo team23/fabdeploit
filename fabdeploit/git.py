@@ -419,6 +419,30 @@ class Git(BaseCommandUtil):
             ))
         #remote.push(release_deployment_branch)
 
+    def webserver_harden_remote_git(self):
+        dotgit_path = self._path_join(self.remote_repository_path, '.git')
+        # This does not work with bare repositories. This is by design as
+        # bare repositories usually don't get pushed to web server document
+        # root's
+        if not self._exists(dotgit_path):
+            raise IOError('No .git path on server found (%s)' % dotgit_path)
+        self._webserver_harden_remote_git_permissions(dotgit_path)
+        self._webserver_harden_remote_git_htaccess(dotgit_path)
+
+    def _webserver_harden_remote_git_permissions(self, dotgit_path):
+        self._run('chmod 700 "%s"' % dotgit_path)
+
+    def _webserver_harden_remote_git_htaccess(self, dotgit_path):
+        htaccess_path = self._path_join(dotgit_path, '.htaccess')
+        self._run('echo "<IfVersion < 2.4>" > "%s"' % htaccess_path)
+        self._run('echo "  Satisfy all" >> "%s"' % htaccess_path)
+        self._run('echo "  Order deny,allow" >> "%s"' % htaccess_path)
+        self._run('echo "  Deny from all" >> "%s"' % htaccess_path)
+        self._run('echo "</IfVersion>" >> "%s"' % htaccess_path)
+        self._run('echo "<IfVersion >= 2.4>" >> "%s"' % htaccess_path)
+        self._run('echo "  Require all denied" >> "%s"' % htaccess_path)
+        self._run('echo "</IfVersion>" >> "%s"' % htaccess_path)
+
     def push_origin(self):
         # init repo and config
         repo = self._get_local_repo()
