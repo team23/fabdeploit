@@ -70,6 +70,20 @@ switch_release(commit=None)
     commit yourself, if None the commit created by create_release_commit()
     will be used. This must be run to apply all changes on the server.
 
+webserver_harden_remote_git()
+    (Should be run after push)
+
+    Tries to disable access to the .git folder for common configuration. This is
+    currently done by writing a .htaccess (for Apache) and setting permissions to
+    rwx------ (700) so no other user is allowed to access to directory.
+
+    **Note**: *You should never push directly into the document root!* It is always better
+    to have the document root being a sub-folder in your git repository for multiple
+    good reasons (for example as "htdocs"). Anyways there are situations where you
+    cannot ensure such a sane setup. This method helps you not shooting yourself
+    in the food. Please make sure it works for your setup, for example by
+    browsing to www.your-domain.com/.git/config, you should get "access denied".
+
 Example Workflow
 ----------------
 
@@ -79,6 +93,7 @@ Example Workflow
     git.pull()  # Make sure we have all remote changes
     git.create_release_commit("New release")
     git.push()  # Make sure the new release is copied to origin and server
+    # git.webserver_harden_remote_git() # No web access to .git
     git.switch_release()  # Apply all file changes
 
 Example GitFilter
