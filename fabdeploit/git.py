@@ -463,6 +463,14 @@ class Git(BaseCommandUtil):
         # init repo and latest commit
         release_deployment_branch = self.release_deployment_branch()
 
+        # use release commit we created just now if possible
+        if commit is None and self.release_commit is not None:
+            commit = self.release_commit
+
+        # Support passing raw git commit objects
+        if isinstance(commit, git.Commit):
+            commit = commit.hexsha
+
         # checkout changes on remote
         with fab.cd(self.remote_repository_path):
             # we switch to the appropriate commit using a normal checkout, this
@@ -518,6 +526,11 @@ class Git(BaseCommandUtil):
                     # switch to updated branch
                     fab.run('git checkout "%s"' % release_deployment_branch)
             else:
+                # Using the branch should only be done in some obscure edge cases
+                # as after we switched to a branch instead of headless checkout
+                # the first "git --reset" above will apply all file changes. This
+                # is not the indented behavior. As of this for the most cases we
+                # use the release commit sha1 whenever possible. See above.
                 fab.run('git checkout "%s"' % (commit if commit else release_deployment_branch))
             # make sure everything is clean
             fab.run('git reset --hard')
