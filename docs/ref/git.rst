@@ -81,7 +81,7 @@ webserver_harden_remote_git()
     to have the document root being a sub-folder in your git repository for multiple
     good reasons (for example as "htdocs"). Anyways there are situations where you
     cannot ensure such a sane setup. This method helps you not shooting yourself
-    in the food. Please make sure it works for your setup, for example by
+    in the foot. Please make sure it works for your setup, for example by
     browsing to www.your-domain.com/.git/config, you should get "access denied".
 
 Example Workflow
