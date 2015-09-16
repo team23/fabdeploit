@@ -323,7 +323,13 @@ class Git(BaseCommandUtil):
 
         # create new commit
         if message is None:
-            message = datetime.datetime.now().isoformat()
+            message = (
+                "Deploying '{commit}' from branch '{release_branch}' "
+                "into '{deployment_branch}'. Date: {timestamp}".format(
+                    commit=commit,
+                    release_branch=self.release_branch,
+                    deployment_branch=release_deployment_branch,
+                    timestamp=datetime.datetime.now().isoformat()))
         if parent:
             self.release_commit = self._raw_copy_commit(commit, message=message, parents=[parent], actor=self.release_author)
         else:
