@@ -1,7 +1,3 @@
-import sys
-sys.path.append('../')
-
-import git
 import fabdeploit
 from fabric.api import *
 

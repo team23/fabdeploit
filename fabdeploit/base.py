@@ -36,6 +36,8 @@ class BaseCommandUtil(object):
         return posixpath.join(*paths)
 
     def _cd(self, path):
+        if not self._exists(path):
+            raise RuntimeError('Path does not exist (%s)' % path)
         return fab.cd(path)
 
 
@@ -54,4 +56,6 @@ class LocalCommandMixin(object):
         return os.path.join(*paths)
 
     def _cd(self, path):
+        if not self._exists(path):
+            raise RuntimeError('Path does not exist (%s)' % path)
         return fab.lcd(path)
