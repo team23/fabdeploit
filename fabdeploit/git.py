@@ -35,170 +35,59 @@ def _git_raw_write_object(repo, obj):
     return obj
 
 
-class TemporaryTree(object):
-    type = git.Tree.type
-    binsha = git.Tree.NULL_BIN_SHA
-    NULL_BIN_SHA = git.Tree.NULL_BIN_SHA
+def _create_blob_from_file(repo, filepath):
+    from git.index.fun import stat_mode_to_index_mode
+    from git.util import to_native_path_linux
 
-    def __init__(self, repo, path):
-        self.repo = repo
-        self.path = path
-        self._objs = {}
-
-    def add(self, obj):
-        self._objs[obj.name] = obj
-
-    @property
-    def name(self):
-        return os.path.basename(self.path)
-
-    def __iter__(self):
-        for item in self._objs.values():
-            yield item
-
-    def __getitem__(self, item):
-        return self._objs[item]
-
-    def save(self):
-        tree = git.Tree(self.repo, git.Tree.NULL_BIN_SHA, path=self.path)
-        tree._cache = []  # prefill cache, so gitdb does not try to read invalid object (NULL_BIN_SHA)
-
-        # ensure all subelements are written as well
-        for name, obj in self._objs.iteritems():
-            if obj.binsha == obj.NULL_BIN_SHA:
-                if isinstance(obj, TemporaryTree):
-                    obj = obj.save()
-                else:
-                    obj = _git_raw_write_object(self.repo, obj)
-
-            if obj.type == git.Submodule.type:
-                # submodules somehow have no _name initialized, so we use last bit of path
-                tree.cache.add(obj.hexsha, obj.mode, os.path.basename(obj.path))
-            else:
-                tree.cache.add(obj.hexsha, obj.mode, name)
-
-        # finally write self
-        tree.cache.set_done()
-        return _git_raw_write_object(self.repo, tree)
+    absfilepath = os.path.join(repo.working_tree_dir, filepath)
+    st = os.lstat(absfilepath)
+    blob = git.Blob(repo=repo,
+                    binsha=git.Blob.NULL_BIN_SHA,
+                    mode=stat_mode_to_index_mode(st.st_mode),
+                    path=to_native_path_linux(filepath))
+    blob = _git_raw_write_object(repo, blob)
+    return blob
 
 
 class GitFilter(object):
-    def __init__(self, repo, tree):
+    def __init__(self, repo, index, base_commit):
         self.repo = repo
-        self.original_tree = tree
-        self.filtered_tree = self._copy_tree(tree)
-        self.changes = {}
+        self.index = index
+        self.base_commit = base_commit
 
     def filter(self):
         raise NotImplementedError('You should create your own apply() method in your own subclass')
 
     def execute(self):
         self.filter()
-        self.filtered_tree = self.filtered_tree.save()
-        return self.filtered_tree
-
-    def _copy_tree(self, original, additions=None, excludes=None):
-        copied = TemporaryTree(self.repo, path=original.path)
-        if excludes is None:
-            excludes = []
-        if additions:  # skip all additions on first copy run
-            excludes += [obj.name for obj in additions]
-        for obj in original:
-            if obj.type == git.Submodule.type:
-                # submodules somehow have no _name initialized, so we use last bit of path
-                if os.path.basename(obj.path) not in excludes:
-                    copied.add(obj)
-            elif obj.name not in excludes:
-                copied.add(obj)
-        if additions:
-            for obj in additions:
-                copied.add(obj)
-        return copied
-
-    def _create_blob_from_file(self, filepath):
-        from git.index.fun import stat_mode_to_index_mode
-        from git.util import to_native_path_linux
-
-        absfilepath = os.path.join(self.repo.working_tree_dir, filepath)
-        st = os.lstat(absfilepath)
-        blob = git.Blob(repo=self.repo,
-                        binsha=git.Blob.NULL_BIN_SHA,
-                        mode=stat_mode_to_index_mode(st.st_mode),
-                        path=to_native_path_linux(filepath))
-        blob = _git_raw_write_object(self.repo, blob)
-        return blob
-
-    def _git_path_parts(self, path):
-        from git.util import to_native_path_linux
-
-        return to_native_path_linux(path).split('/')
-
-    def _add(self, path):
-        abspath = os.path.join(self.repo.working_tree_dir, path)
-        if not os.path.exists(abspath):
-            raise IOError('File not found (%s)' % path)
-
-        # construct newly added object
-        if os.path.isfile(abspath) or os.path.islink(abspath):
-            added_object = self._create_blob_from_file(path)
-        elif os.path.isdir(abspath):
-            raise NotImplementedError('TODO: Support adding whole trees')
-
-        # we need to update all objects down to root, so a stack is required
-        stack = []
-
-        # walk tree down
-        parts = self._git_path_parts(path)
-        parent = self.filtered_tree
-        for i, part in enumerate(parts[:-1]):
-            stack.append((parent, part))
-            try:
-                parent = parent[part]
-            except KeyError:
-                # tree does not exist, create an empty one
-                parent = TemporaryTree(self.repo, path='/'.join(parts[:i + 1]))
-
-        # copy parent tree, exclude the removed item
-        changed = self._copy_tree(parent, additions=[added_object])
-
-        # walt tree up again, updating all objs
-        for parent, name in reversed(stack):
-            changed = self._copy_tree(parent, additions=[changed])
-        self.filtered_tree = changed
+        return self.index
 
     def add(self, *paths):
-        for path in paths:
-            self._add(path)
-
-    def _remove(self, path):
-        # we need to update all objects down to root, so a stack is required
-        stack = []
-
-        # walk tree down
-        parts = self._git_path_parts(path)
-        parent = self.filtered_tree
-        for part in parts[:-1]:
-            stack.append((parent, part))
-            try:
-                parent = parent[part]
-            except KeyError:
-                # tree does not exist, no need to delete anything
-                return
-
-        # copy parent tree, exclude the removed item
-        changed = self._copy_tree(parent, excludes=[parts[-1]])
-
-        # walt tree up again, updating all objs
-        for parent, name in reversed(stack):
-            if len(changed) == 0:
-                changed = self._copy_tree(parent, excludes=[changed.name])
-            else:
-                changed = self._copy_tree(parent, additions=[changed])
-        self.filtered_tree = changed
+        self.index.add(paths)
 
     def remove(self, *paths):
-        for path in paths:
-            self._remove(path)
+        self.index.remove(paths)
+
+    @property
+    def original_tree(self):
+        return self.base_commit.tree
+
+    @property
+    def filtered_tree(self):
+        # Will store tree state to disk, be sure when to call this!
+        return self.index.write_tree()
+
+    @filtered_tree.setter
+    def filtered_tree(self, new_tree):
+        warnings.warn("Setting the tree directly may cause unexpected results. Will reset all changes to original state.")
+        assert new_tree.binsha
+        self.index = git.IndexFile.from_tree(self.repo, new_tree)
+
+    def _copy_tree(self, original, additions=None, excludes=None):
+        warnings.warn("You don't need to copy trees any more, as fabdeploit switched to using git.IndexFile. Will just return original tree.", PendingDeprecationWarning)
+        if additions or excludes:
+            raise RuntimeError('Not possible any more, see warning. Use GitFilter.add/remove instead.')
+        return original
 
 
 class Git(BaseCommandUtil):
@@ -228,6 +117,7 @@ class Git(BaseCommandUtil):
             return self._local_repo
 
     def _raw_copy_commit(self, commit, message=None, parents=None, actor=None):
+        warnings.warn("Will probable be removed with Git.merge_release_back().", PendingDeprecationWarning)
         # create a new commit reusing the tree (meaning no file changes)
         new_commit = git.Commit(self._get_local_repo(), git.Commit.NULL_BIN_SHA)
         new_commit.tree = commit.tree
@@ -247,15 +137,9 @@ class Git(BaseCommandUtil):
             new_commit.committed_date = new_commit.committed_date + 1
 
         # set author / comitter
-        if actor:
-            if isinstance(actor, basestring):
-                actor = git.Actor._from_string(actor)
-            new_commit.author = actor
-            new_commit.committer = actor
-        else:
-            cr = self._get_local_repo().config_reader()
-            new_commit.author = git.Actor.author(cr)
-            new_commit.committer = git.Actor.committer(cr)
+        actor = self._get_release_actor(actor)
+        new_commit.author = actor
+        new_commit.committer = actor
 
         # set commit message
         if message:
@@ -307,6 +191,17 @@ class Git(BaseCommandUtil):
         if 'origin' in [_i.name for _i in self._get_local_repo().remotes]:
             self.pull_origin()
 
+    def _get_release_actor(self, actor=None):
+        if actor is None:
+            actor = self.release_author
+        if actor:
+            if isinstance(actor, basestring):
+                actor = git.Actor._from_string(actor)
+        else:
+            cr = self._get_local_repo().config_reader()
+            actor = git.Actor.author(cr)
+        return actor
+
     def create_release_commit(self, message=None):
         """ Creates a new release commit """
 
@@ -320,6 +215,7 @@ class Git(BaseCommandUtil):
         parent = None
         if release_deployment_branch in repo.heads:
             parent = repo.heads[release_deployment_branch].commit
+        parents = [parent] if parent else []
 
         # create new commit
         if message is None:
@@ -330,16 +226,17 @@ class Git(BaseCommandUtil):
                     release_branch=self.release_branch,
                     deployment_branch=release_deployment_branch,
                     timestamp=datetime.datetime.now().isoformat()))
-        if parent:
-            self.release_commit = self._raw_copy_commit(commit, message=message, parents=[parent], actor=self.release_author)
-        else:
-            self.release_commit = self._raw_copy_commit(commit, message=message, actor=self.release_author)
 
+        self.release_commit_index = git.IndexFile.from_tree(repo, self.base_commit.tree)
         self.filter_release_commit()
 
         # write commit
-        self._raw_write_object(self.release_commit)
-        assert self.release_commit.binsha
+        self.release_commit = self.release_commit_index.commit(
+            message=message,
+            parent_commits=parents,
+            head=False,
+            author=self._get_release_actor(),
+            committer=self._get_release_actor())
         # update release branch
         self._raw_update_branch(release_deployment_branch, self.release_commit)
 
@@ -352,9 +249,10 @@ class Git(BaseCommandUtil):
         # I think this only should be used for tree filters, as other data may be
         # set before even creating the commit.
         if self.release_commit_filter_class is not None:
-            self.release_commit.tree = self.release_commit_filter_class(
+            self.release_commit_index = self.release_commit_filter_class(
                 self._get_local_repo(),
-                self.release_commit.tree,
+                self.release_commit_index,
+                self.base_commit,
             ).execute()
 
     def tag_release(self, tag_name):
@@ -365,6 +263,7 @@ class Git(BaseCommandUtil):
     def merge_release_back(self):
         # We reuse the original commit here, as the release commit may be
         # changed by some filter.
+        warnings.warn("Merging back will be removed some day. Please don't depend on it.", PendingDeprecationWarning)
         if self.base_commit is None or self.release_commit is None:
             raise RuntimeError('You should create a release commit first')
         merge_commit = self._raw_copy_commit(self.base_commit, parents=[self.base_commit, self.release_commit])
