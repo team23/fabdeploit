@@ -59,14 +59,26 @@ class GitFilter(object):
         raise NotImplementedError('You should create your own apply() method in your own subclass')
 
     def execute(self):
-        self.filter()
+        from git.index.util import TemporaryFileSwap
+
+        # Move current index out of the way, as we need to work on the default index file
+        index_handler = TemporaryFileSwap(self.index._index_path())
+        try:
+            self.index.write(self.index._index_path())
+            self.filter()
+        finally:
+            del(index_handler)  # release as soon as possible
         return self.index
 
     def add(self, *paths):
         self.index.add(paths)
 
     def remove(self, *paths):
-        self.index.remove(paths)
+        self.index.remove(
+            paths,
+            working_tree=False,  # just to be sure
+            r=True,
+        )
 
     @property
     def original_tree(self):
@@ -79,7 +91,11 @@ class GitFilter(object):
 
     @filtered_tree.setter
     def filtered_tree(self, new_tree):
-        warnings.warn("Setting the tree directly may cause unexpected results. Will reset all changes to original state.")
+        warnings.warn("Setting the tree directly may cause unexpected results.")
+        # Note: GitFilter moves the index to the default index location for all
+        #       available methods (like remove) to work as expected. If you change
+        #       the tree we will switch over to a temporary index. So these methods
+        #       will then fail to work. THIS IS THE EXPECTED RESULT.
         assert new_tree.binsha
         self.index = git.IndexFile.from_tree(self.repo, new_tree)
 
