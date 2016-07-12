@@ -45,7 +45,7 @@ env.use_ssh_config = True
 def test():
     git = Git()
     git.pull()
-    commit = git.release(merge_back=True)
+    commit = git.release()
     git.push()
     # git.webserver_harden_remote_git()
     git.switch_release()
