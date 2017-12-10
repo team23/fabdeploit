@@ -1,12 +1,14 @@
 import fabdeploit
 from fabric.api import *
+import os
 
 
 class GitFilter(fabdeploit.GitFilter):
     def filter(self):
         for obj in self.filtered_tree:
-            if not obj.name[0] in ('1', '5', 'R'):
-                self.remove(obj.name)
+            name = os.path.basename(obj.path)
+            if not name[0] in ('1', '5', 'R'):
+                self.remove(name)
         with lcd(self.repo.working_tree_dir):
             local('echo $RANDOM > FOOBAR')
             self.add('FOOBAR')
