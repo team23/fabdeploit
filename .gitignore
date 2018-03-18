@@ -3,6 +3,7 @@
 /build/config.local.yml
 /build/local.yml
 /.venv/
+/Pipfile.lock
 
 # Project files
 /example/test_repo
