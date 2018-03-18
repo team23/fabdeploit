@@ -1,3 +1,10 @@
+# Build files
+/build/Taskfile.local
+/build/config.local.yml
+/build/local.yml
+/.venv/
+
+# Project files
 /example/test_repo
 /build
 /dist
